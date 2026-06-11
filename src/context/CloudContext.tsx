@@ -11,6 +11,7 @@ export interface Album {
   watermarkText: string;
   watermarkImage: string | null;
   watermarkFont?: string;
+  watermarkFramePreset?: string;
   activePreset: string;
   isAutoRetouchEnabled: boolean;
   reviewerMode: boolean;
@@ -112,6 +113,8 @@ interface CloudContextType {
   setWatermarkImage: (image: string | null) => void;
   watermarkFont: string;
   setWatermarkFont: (font: string) => void;
+  watermarkFramePreset: string;
+  setWatermarkFramePreset: (preset: string) => void;
   guestSelfie: string | null;
   setGuestSelfie: (selfie: string | null) => void;
   isFacialSmoothingEnabled: boolean;
@@ -265,6 +268,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [watermarkType, setWatermarkTypeState] = useState<'none' | 'text' | 'image' | 'both'>('text');
   const [watermarkImage, setWatermarkImageState] = useState<string | null>(null);
   const [watermarkFont, setWatermarkFontState] = useState<string>('Outfit');
+  const [watermarkFramePreset, setWatermarkFramePresetState] = useState<string>('none');
   const [guestSelfie, setGuestSelfie] = useState<string | null>(null);
 
   // Multi-Album States
@@ -290,6 +294,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           watermarkText: 'Do\'i picture',
           watermarkImage: null,
           watermarkFont: 'Outfit',
+          watermarkFramePreset: 'none',
           activePreset: 'wedding',
           isAutoRetouchEnabled: true,
           reviewerMode: false
@@ -422,9 +427,14 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     updateActiveAlbumProperty('watermarkFont', font);
   };
 
+  const setWatermarkFramePreset = (preset: string) => {
+    setWatermarkFramePresetState(preset);
+    updateActiveAlbumProperty('watermarkFramePreset', preset);
+  };
+
   // Mock Authentication Functions
   const login = (email: string, pass: string): boolean => {
-    if (email === 'admin@doiphoto.com' && pass === 'admin123') {
+    if (email === 'admin@doipicture.com' && pass === 'admin123') {
       setIsLoggedIn(true);
       localStorage.setItem('doiphoto_is_logged_in', 'true');
       return true;
@@ -506,7 +516,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 blurPlates: isPlateBlurringEnabled,
                 type: watermarkType,
                 image: watermarkImage,
-                font: watermarkFont
+                font: watermarkFont,
+                framePreset: watermarkFramePreset
               }
             );
             return {
@@ -572,6 +583,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setWatermarkTextState(activeAlbum.watermarkText || 'Do\'i picture');
           setWatermarkImageState(activeAlbum.watermarkImage || null);
           setWatermarkFontState(activeAlbum.watermarkFont || 'Outfit');
+          setWatermarkFramePresetState(activeAlbum.watermarkFramePreset || 'none');
           setActivePresetState(activeAlbum.activePreset || 'wedding');
           setIsAutoRetouchEnabledState(activeAlbum.isAutoRetouchEnabled !== undefined ? activeAlbum.isAutoRetouchEnabled : true);
           setReviewerModeState(activeAlbum.reviewerMode !== undefined ? activeAlbum.reviewerMode : false);
@@ -676,7 +688,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           blurPlates: isPlateBlurringEnabled,
           type: watermarkType,
           image: watermarkImage,
-          font: watermarkFont
+          font: watermarkFont,
+          framePreset: watermarkFramePreset
         },
         mSettings
       );
@@ -748,7 +761,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTeamStreamActive, activePreset, watermarkText, watermarkOpacity, watermarkSize, watermarkType, watermarkImage, watermarkFont, isFacialSmoothingEnabled, isPlateBlurringEnabled, reviewerMode]);
+  }, [isTeamStreamActive, activePreset, watermarkText, watermarkOpacity, watermarkSize, watermarkType, watermarkImage, watermarkFont, watermarkFramePreset, isFacialSmoothingEnabled, isPlateBlurringEnabled, reviewerMode]);
 
   const updatePhotoPreset = async (id: string, presetName: string) => {
     setPhotos(prev =>
@@ -786,7 +799,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           blurPlates: isPlateBlurringEnabled,
           type: watermarkType,
           image: watermarkImage,
-          font: watermarkFont
+          font: watermarkFont,
+          framePreset: watermarkFramePreset
         },
         mSettings
       );
@@ -929,6 +943,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWatermarkImage,
         watermarkFont,
         setWatermarkFont,
+        watermarkFramePreset,
+        setWatermarkFramePreset,
         guestSelfie,
         setGuestSelfie,
         isFacialSmoothingEnabled,

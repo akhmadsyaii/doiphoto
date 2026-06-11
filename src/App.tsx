@@ -44,7 +44,7 @@ const AppContent: React.FC = () => {
           alignItems: 'center' 
         }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Demo Live Portal Tamu DoiPhoto
+            Demo Live Portal Tamu do'ipicture
           </span>
           <a 
             href={window.location.origin} 

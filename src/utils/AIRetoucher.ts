@@ -12,6 +12,7 @@ interface WatermarkOptions {
   type?: 'none' | 'text' | 'image' | 'both';
   image?: string | null;
   font?: string;
+  framePreset?: string;
 }
 
 export const applyAIRetouch = (
@@ -154,8 +155,14 @@ export const applyAIRetouch = (
           }
         };
 
-        if (watermarkOptions && (watermarkOptions.type === 'image' || watermarkOptions.type === 'both') && watermarkOptions.image) {
+        // Draw built-in frame preset if selected and not 'custom'
+        if (watermarkOptions && watermarkOptions.framePreset && watermarkOptions.framePreset !== 'none' && watermarkOptions.framePreset !== 'custom') {
+          drawFramePreset(ctx, width, height, watermarkOptions.framePreset, watermarkOptions.opacity);
+        }
+
+        if (watermarkOptions && (watermarkOptions.framePreset === 'custom' || watermarkOptions.type === 'image' || watermarkOptions.type === 'both') && watermarkOptions.image) {
           const watermarkImg = new Image();
+          watermarkImg.crossOrigin = 'anonymous';
           watermarkImg.src = watermarkOptions.image;
           watermarkImg.onload = () => {
             try {
@@ -179,7 +186,7 @@ export const applyAIRetouch = (
           return;
         }
 
-        // Draw text overlay if image overlay is not active
+        // Draw text overlay if custom image overlay is not active
         drawTextWatermark();
 
         // Export as base64 JPEG
@@ -362,6 +369,239 @@ const applyPresetOverlays = (
       ctx.fillStyle = `rgba(147, 197, 253, ${Math.abs(warmth) * 0.25})`;
       ctx.fillRect(0, 0, width, height);
     }
+  }
+
+  ctx.restore();
+};
+
+const drawFramePreset = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  presetName: string,
+  opacity: number
+) => {
+  ctx.save();
+  ctx.globalAlpha = opacity;
+
+  switch (presetName) {
+    case 'polaroid': {
+      // Classic Polaroid: White frame border all around, thicker at the bottom.
+      const borderSize = Math.round(Math.min(width, height) * 0.04);
+      const bottomSpace = Math.round(height * 0.12);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, borderSize);
+      ctx.fillRect(0, 0, borderSize, height);
+      ctx.fillRect(width - borderSize, 0, borderSize, height);
+      ctx.fillRect(0, height - bottomSpace, width, bottomSpace);
+
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(borderSize, borderSize, width - 2 * borderSize, height - borderSize - bottomSpace);
+      break;
+    }
+    case 'wedding_gold': {
+      // Elegant Wedding: Double gold thin borders and fine decorative curves in the corners
+      const pad = Math.round(Math.min(width, height) * 0.035);
+      const goldColor = '#eab308'; // Amber gold sheen representation
+      
+      ctx.strokeStyle = goldColor;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(pad + 4, pad + 4, width - (pad + 4) * 2, height - (pad + 4) * 2);
+
+      const drawCurl = (x: number, y: number) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 16, 0, Math.PI * 0.5);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x, y, 24, 0, Math.PI * 0.5);
+        ctx.stroke();
+      };
+      
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
+      ctx.lineWidth = 1;
+      // top left
+      ctx.save();
+      ctx.translate(pad + 10, pad + 10);
+      ctx.rotate(Math.PI);
+      drawCurl(0, 0);
+      ctx.restore();
+      // bottom right
+      ctx.save();
+      ctx.translate(width - pad - 10, height - pad - 10);
+      drawCurl(0, 0);
+      ctx.restore();
+      break;
+    }
+    case 'botanical': {
+      // Golden Leaf: Organic gold leaf illustrations in bottom corners
+      const pad = Math.round(Math.min(width, height) * 0.03);
+      ctx.strokeStyle = '#ca8a04';
+      ctx.fillStyle = 'rgba(202, 138, 4, 0.12)';
+      ctx.lineWidth = 1.5;
+
+      const drawLeafNode = (bx: number, by: number, rot: number) => {
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.rotate(rot);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      };
+
+      // Left corner leaf
+      ctx.save();
+      ctx.translate(pad + 20, height - pad - 20);
+      ctx.beginPath();
+      ctx.moveTo(-10, 10);
+      ctx.quadraticCurveTo(15, -15, 30, -30);
+      ctx.stroke();
+      drawLeafNode(8, -8, -Math.PI / 4);
+      drawLeafNode(18, -18, -Math.PI / 4);
+      drawLeafNode(28, -28, -Math.PI / 4);
+      ctx.restore();
+
+      // Right corner leaf
+      ctx.save();
+      ctx.translate(width - pad - 20, height - pad - 20);
+      ctx.scale(-1, 1);
+      ctx.beginPath();
+      ctx.moveTo(-10, 10);
+      ctx.quadraticCurveTo(15, -15, 30, -30);
+      ctx.stroke();
+      drawLeafNode(8, -8, -Math.PI / 4);
+      drawLeafNode(18, -18, -Math.PI / 4);
+      drawLeafNode(28, -28, -Math.PI / 4);
+      ctx.restore();
+      break;
+    }
+    case 'minimal_black': {
+      // Minimalist Black: A thin, clean black border
+      const pad = Math.round(Math.min(width, height) * 0.025);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+      break;
+    }
+    case 'retro_film': {
+      // Retro Film 35mm: Black borders with sprocket holes.
+      const barHeight = Math.round(height * 0.09);
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(0, 0, width, barHeight);
+      ctx.fillRect(0, height - barHeight, width, barHeight);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      const holeW = Math.round(width * 0.015);
+      const holeH = Math.round(barHeight * 0.35);
+      const gap = Math.round(holeW * 1.8);
+      const startYTop = Math.round(barHeight * 0.3);
+      const startYBot = height - barHeight + Math.round(barHeight * 0.3);
+
+      for (let x = gap; x < width - gap; x += holeW + gap) {
+        ctx.fillRect(x, startYTop, holeW, holeH);
+        ctx.fillRect(x, startYBot, holeW, holeH);
+      }
+
+      ctx.fillStyle = '#eab308';
+      ctx.font = `bold ${Math.round(barHeight * 0.25)}px monospace`;
+      ctx.fillText('do\'ipicture FX-400', 20, barHeight + 12);
+      break;
+    }
+    case 'midnight_luxury': {
+      // Midnight Luxury: Deep navy gradient at the bottom with gold geometric overlapping lines
+      const barHeight = Math.round(height * 0.22);
+      const grad = ctx.createLinearGradient(0, height - barHeight, 0, height);
+      grad.addColorStop(0, 'rgba(15, 23, 42, 0)');
+      grad.addColorStop(0.4, 'rgba(15, 23, 42, 0.55)');
+      grad.addColorStop(1, 'rgba(8, 15, 30, 0.92)');
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barHeight, width, barHeight);
+
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.45)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      ctx.lineTo(width * 0.25, height - barHeight * 0.5);
+      ctx.lineTo(width * 0.5, height);
+      ctx.moveTo(width * 0.5, height);
+      ctx.lineTo(width * 0.75, height - barHeight * 0.5);
+      ctx.lineTo(width, height);
+      ctx.stroke();
+      break;
+    }
+    case 'neon_glow': {
+      // Neon Glow: Cyberpunk cyan and magenta neon glowing horizontal bars
+      const glowHeight = Math.round(height * 0.012);
+      
+      ctx.save();
+      ctx.shadowColor = '#d946ef';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#f472b6';
+      ctx.fillRect(0, 0, width, glowHeight);
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillRect(0, height - glowHeight, width, glowHeight);
+      ctx.restore();
+      break;
+    }
+    case 'soft_vignette': {
+      // Soft Vignette: Cream/White fuzzy radial vignette
+      const vignette = ctx.createRadialGradient(
+        width / 2, height / 2, Math.min(width, height) * 0.4,
+        width / 2, height / 2, Math.max(width, height) * 0.65
+      );
+      vignette.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      vignette.addColorStop(0.85, 'rgba(255, 255, 255, 0.2)');
+      vignette.addColorStop(1, 'rgba(255, 255, 255, 0.65)');
+
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, width, height);
+      break;
+    }
+    case 'silver_sparkles': {
+      // Silver Sparkles: Silver gradient border on the bottom with starry sparkles
+      const barH = Math.round(height * 0.15);
+      const sGrad = ctx.createLinearGradient(0, height - barH, 0, height);
+      sGrad.addColorStop(0, 'rgba(226, 232, 240, 0)');
+      sGrad.addColorStop(0.5, 'rgba(226, 232, 240, 0.4)');
+      sGrad.addColorStop(1, 'rgba(148, 163, 184, 0.7)');
+
+      ctx.fillStyle = sGrad;
+      ctx.fillRect(0, height - barH, width, barH);
+
+      const drawStar = (cx: number, cy: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r);
+        ctx.lineTo(cx + r * 0.2, cy - r * 0.2);
+        ctx.lineTo(cx + r, cy);
+        ctx.lineTo(cx + r * 0.2, cy + r * 0.2);
+        ctx.lineTo(cx, cy + r);
+        ctx.lineTo(cx - r * 0.2, cy + r * 0.2);
+        ctx.lineTo(cx - r, cy);
+        ctx.lineTo(cx - r * 0.2, cy - r * 0.2);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      };
+
+      drawStar(width * 0.12, height - barH * 0.4, 5);
+      drawStar(width * 0.88, height - barH * 0.5, 7);
+      drawStar(width * 0.92, height - barH * 0.25, 4);
+      break;
+    }
+    default:
+      break;
   }
 
   ctx.restore();

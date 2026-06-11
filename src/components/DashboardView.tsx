@@ -305,7 +305,7 @@ export const DashboardView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status Filters Bar (DoiPhoto Style) */}
+              {/* Status Filters Bar (do'ipicture Style) */}
               <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', overflowX: 'auto' }}>
                 {([
                   { id: 'semua', label: 'Semua', count: photos.length, highlight: '' },

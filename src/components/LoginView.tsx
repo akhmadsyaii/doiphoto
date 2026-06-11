@@ -25,7 +25,7 @@ export const LoginView: React.FC = () => {
   };
 
   const handleQuickFill = () => {
-    setEmail('admin@doiphoto.com');
+    setEmail('admin@doipicture.com');
     setPassword('admin123');
     setError(null);
   };
@@ -98,7 +98,7 @@ export const LoginView: React.FC = () => {
           </div>
           <div>
             <h1 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-              Doi<span className="text-gradient">Photo</span>
+              do'i<span className="text-gradient">picture</span>
             </h1>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               Workstation Admin Fotografer
@@ -138,7 +138,7 @@ export const LoginView: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="glass-input"
-              placeholder="contoh: admin@doiphoto.com"
+              placeholder="contoh: admin@doipicture.com"
               required
               disabled={isLoading}
               style={{ width: '100%' }}
@@ -217,7 +217,7 @@ export const LoginView: React.FC = () => {
             Kredensial Mode Demo
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem' }}>
-            <div>Email: <code style={{ color: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>admin@doiphoto.com</code></div>
+            <div>Email: <code style={{ color: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>admin@doipicture.com</code></div>
             <div>Password: <code style={{ color: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>admin123</code></div>
           </div>
           <button

@@ -156,7 +156,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
                 boxShadow: qrTargetMode === 'gallery' ? '0 2px 8px var(--primary-glow)' : 'none'
               }}
             >
-              Galeri DoiPhoto
+              Galeri do'ipicture
             </button>
             <button
               onClick={() => gdriveLink && setQrTargetMode('gdrive')}

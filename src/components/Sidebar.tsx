@@ -60,7 +60,7 @@ export const Sidebar: React.FC = () => {
         </div>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '-0.02em' }}>
-            Doi<span className="text-gradient">Photo</span>
+            do'i<span className="text-gradient">picture</span>
           </h2>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             Camera-To-Cloud

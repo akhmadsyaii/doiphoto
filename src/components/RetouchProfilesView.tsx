@@ -4,6 +4,20 @@ import { applyAIRetouch } from '../utils/AIRetoucher';
 import { Sliders, Sparkles, AlertCircle, RefreshCw, Layers, Type, Shield, Upload, Trash2, SlidersHorizontal } from 'lucide-react';
 import { parseLightroomPreset } from '../utils/presetParser';
 
+const FRAME_PRESETS = [
+  { id: 'none', name: 'Tanpa Bingkai', desc: 'Foto bersih tanpa bingkai', icon: '❌' },
+  { id: 'polaroid', name: 'Classic Polaroid', desc: 'Bingkai putih retro instan', icon: '📸' },
+  { id: 'wedding_gold', name: 'Elegant Wedding', desc: 'Garis emas ganda & sulur dekoratif', icon: '👑' },
+  { id: 'botanical', name: 'Golden Leaf', desc: 'Lekukan daun emas organik di sudut', icon: '🌿' },
+  { id: 'minimal_black', name: 'Minimalist Black', desc: 'Garis hitam tipis bingkai editorial', icon: '🖤' },
+  { id: 'retro_film', name: 'Retro Film 35mm', desc: 'Film strip hitam & lubang sprocket', icon: '🎞️' },
+  { id: 'midnight_luxury', name: 'Midnight Luxury', desc: 'Navy bar & garis geometris emas', icon: '💎' },
+  { id: 'neon_glow', name: 'Neon Glow', desc: 'Glow neon cyan & magenta berpendar', icon: '⚡' },
+  { id: 'soft_vignette', name: 'Soft Vignette', desc: 'Efek vignette putih kabur romantis', icon: '☁️' },
+  { id: 'silver_sparkles', name: 'Silver Sparkles', desc: 'Gradasi perak & bintang berkelip', icon: '✨' },
+  { id: 'custom', name: 'Unggah Kustom', desc: 'Gunakan file desain PNG Anda', icon: '📤' }
+];
+
 const PRESET_INFOS = [
   { 
     id: 'none',
@@ -70,6 +84,8 @@ export const RetouchProfilesView: React.FC = () => {
     setWatermarkImage,
     watermarkFont,
     setWatermarkFont,
+    watermarkFramePreset,
+    setWatermarkFramePreset,
     isFacialSmoothingEnabled,
     setIsFacialSmoothingEnabled,
     isPlateBlurringEnabled,
@@ -139,7 +155,8 @@ export const RetouchProfilesView: React.FC = () => {
           blurPlates: isPlateBlurringEnabled,
           type: watermarkType,
           image: watermarkImage,
-          font: watermarkFont
+          font: watermarkFont,
+          framePreset: watermarkFramePreset
         }, mSettings);
         setRetouchedUrl(retouched);
       } catch (err) {
@@ -158,6 +175,7 @@ export const RetouchProfilesView: React.FC = () => {
     watermarkType,
     watermarkImage,
     watermarkFont,
+    watermarkFramePreset,
     isFacialSmoothingEnabled, 
     isPlateBlurringEnabled,
     manualBrightness,
@@ -198,6 +216,17 @@ export const RetouchProfilesView: React.FC = () => {
       window.removeEventListener('touchend', handleMouseUp);
     };
   }, []);
+
+  const selectFramePreset = (presetId: string) => {
+    setWatermarkFramePreset(presetId);
+    const isTextActive = watermarkType === 'text' || watermarkType === 'both';
+    if (presetId === 'none') {
+      setWatermarkType(isTextActive ? 'text' : 'none');
+    } else {
+      setWatermarkType(isTextActive ? 'both' : 'image');
+    }
+  };
+
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px', flex: 1, minHeight: 0 }}>
@@ -555,82 +584,67 @@ export const RetouchProfilesView: React.FC = () => {
           </div>
         )}
 
-        {/* Batch Watermarking editor */}
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Batch Watermarking editor */}
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Type size={16} className="text-gradient-cyan" /> Pengaturan Watermark Event
+            <Type size={16} className="text-gradient-cyan" /> Desain & Watermark Event
           </h3>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '-8px' }}>
+            Sesuaikan bingkai overlay premium dan teks penanda event untuk hasil jepretan kamera
+          </p>
 
-          {/* Watermark Layer Toggles */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Layer Aktif</label>
-            
-            {/* Bingkai Switch */}
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              padding: '10px 14px', 
-              borderRadius: '8px', 
-              background: 'var(--btn-secondary-bg)', 
-              border: '1px solid var(--border-color)', 
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}>
-              <span style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 500 }}>🖼️ Bingkai Overlay (PNG)</span>
-              <input 
-                type="checkbox" 
-                checked={watermarkType === 'image' || watermarkType === 'both'} 
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  if (checked) {
-                    setWatermarkType(watermarkType === 'text' || watermarkType === 'both' ? 'both' : 'image');
-                  } else {
-                    setWatermarkType(watermarkType === 'text' || watermarkType === 'both' ? 'text' : 'none');
-                  }
-                }}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-              />
-            </label>
-
-            {/* Teks Switch */}
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              padding: '10px 14px', 
-              borderRadius: '8px', 
-              background: 'var(--btn-secondary-bg)', 
-              border: '1px solid var(--border-color)', 
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}>
-              <span style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 500 }}>✍️ Watermark Teks</span>
-              <input 
-                type="checkbox" 
-                checked={watermarkType === 'text' || watermarkType === 'both'} 
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  if (checked) {
-                    setWatermarkType(watermarkType === 'image' || watermarkType === 'both' ? 'both' : 'text');
-                  } else {
-                    setWatermarkType(watermarkType === 'image' || watermarkType === 'both' ? 'image' : 'none');
-                  }
-                }}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-              />
-            </label>
+          {/* Template Selection Grid - Always Visible! */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Pilih Desain Bingkai Premium</label>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(2, 1fr)', 
+              gap: '8px', 
+              maxHeight: '220px', 
+              overflowY: 'auto',
+              paddingRight: '4px'
+            }} className="custom-scrollbar">
+              {FRAME_PRESETS.map((preset) => {
+                const isSelected = watermarkFramePreset === preset.id;
+                return (
+                  <div 
+                    key={preset.id}
+                    onClick={() => selectFramePreset(preset.id)}
+                    className="glass-card"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                      background: isSelected ? 'var(--primary-glow)' : 'var(--bg-card)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
+                      transition: 'all 0.2s',
+                      userSelect: 'none',
+                      boxShadow: isSelected ? '0 4px 12px var(--primary-glow)' : 'none',
+                      transform: isSelected ? 'scale(0.98)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.25rem' }}>{preset.icon}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isSelected ? 'var(--primary)' : 'var(--text-primary)' }}>{preset.name}</span>
+                    </div>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.25 }}>{preset.desc}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Section: Bingkai Upload */}
-          {(watermarkType === 'image' || watermarkType === 'both') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>File Bingkai (PNG Transparan disarankan)</label>
-              
+          {/* Custom File Upload Zone (only if custom preset is selected) */}
+          {watermarkFramePreset === 'custom' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1.5px dashed var(--border-color)', paddingTop: '10px' }}>
+              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>File Bingkai Kustom (PNG Transparan)</label>
               {watermarkImage ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ 
-                    height: '100px', 
+                    height: '80px', 
                     borderRadius: '8px', 
                     border: '1px solid var(--border-color)', 
                     background: 'var(--bg-overlay)', 
@@ -655,7 +669,7 @@ export const RetouchProfilesView: React.FC = () => {
                 <div 
                   onClick={() => document.getElementById('frame-file-uploader')?.click()}
                   style={{
-                    height: '80px',
+                    height: '70px',
                     borderRadius: '8px',
                     border: '1px dashed var(--border-color)',
                     background: 'var(--btn-secondary-bg)',
@@ -690,6 +704,37 @@ export const RetouchProfilesView: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Watermark Teks Switch */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '10px 14px', 
+              borderRadius: '8px', 
+              background: 'var(--btn-secondary-bg)', 
+              border: '1px solid var(--border-color)', 
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}>
+              <span style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 600 }}>✍️ Aktifkan Watermark Teks</span>
+              <input 
+                type="checkbox" 
+                checked={watermarkType === 'text' || watermarkType === 'both'} 
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  const isFrameActive = watermarkFramePreset !== 'none';
+                  if (checked) {
+                    setWatermarkType(isFrameActive ? 'both' : 'text');
+                  } else {
+                    setWatermarkType(isFrameActive ? 'image' : 'none');
+                  }
+                }}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+            </label>
+          </div>
 
           {/* Section: Text Customizer */}
           {(watermarkType === 'text' || watermarkType === 'both') && (

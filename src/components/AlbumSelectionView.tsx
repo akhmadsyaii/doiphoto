@@ -479,7 +479,7 @@ export const AlbumSelectionView: React.FC = () => {
               <strong style={{ color: 'var(--text-primary)', display: 'block', margin: '6px 0' }}>
                 {albums.find(a => a.id === confirmDeleteId)?.name}
               </strong>
-              akan dihapus sepenuhnya dari penyimpanan local DoiPhoto.
+              akan dihapus sepenuhnya dari penyimpanan local do'ipicture.
             </p>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
