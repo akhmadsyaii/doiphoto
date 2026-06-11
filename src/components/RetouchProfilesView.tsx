@@ -24,6 +24,41 @@ const FRAME_PRESETS = [
   { id: 'custom', name: 'Unggah Kustom', desc: 'Gunakan file desain PNG Anda', icon: '📤' }
 ];
 
+const compressPNG = (base64Str: string, maxDim: number = 1200): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/png', 0.8));
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+  });
+};
+
+
 const PRESET_INFOS = [
   { 
     id: 'none',
@@ -699,7 +734,15 @@ export const RetouchProfilesView: React.FC = () => {
                       if (file) {
                         const reader = new FileReader();
                         reader.onload = (event) => {
-                          setWatermarkImage(event.target?.result as string);
+                          const originalData = event.target?.result as string;
+                          compressPNG(originalData, 1200)
+                            .then((compressed) => {
+                              setWatermarkImage(compressed);
+                            })
+                            .catch((err) => {
+                              console.error('Error compressing uploaded frame:', err);
+                              setWatermarkImage(originalData);
+                            });
                         };
                         reader.readAsDataURL(file);
                       }

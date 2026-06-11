@@ -356,7 +356,11 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const activeId = localStorage.getItem('doiphoto_active_album_id');
       if (!activeId) return prev;
       const updated = prev.map(a => a.id === activeId ? { ...a, [key]: value } : a);
-      localStorage.setItem('doiphoto_albums', JSON.stringify(updated));
+      try {
+        localStorage.setItem('doiphoto_albums', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Quota exceeded or storage failed:', err);
+      }
       return updated;
     });
   };

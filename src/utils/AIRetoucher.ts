@@ -15,6 +15,27 @@ interface WatermarkOptions {
   framePreset?: string;
 }
 
+const getBottomBannerHeight = (preset: string, height: number): number => {
+  switch (preset) {
+    case 'polaroid':
+      return Math.round(height * 0.12);
+    case 'wedding_gold':
+      return Math.round(height * 0.20);
+    case 'midnight_luxury':
+      return Math.round(height * 0.22);
+    case 'silver_sparkles':
+      return Math.round(height * 0.15);
+    case 'rose_gold_floral':
+      return Math.round(height * 0.22);
+    case 'cherry_blossom':
+      return Math.round(height * 0.18);
+    case 'christmas_holiday':
+      return Math.round(height * 0.18);
+    default:
+      return 0;
+  }
+};
+
 export const applyAIRetouch = (
   imageUrl: string, 
   presetName: string,
@@ -140,9 +161,6 @@ export const applyAIRetouch = (
             // Adjust styling based on script font characteristics
             const isScriptFont = ['Sacramento', 'Great Vibes', 'Alex Brush', 'Pacifico'].includes(wFont);
             ctx.font = `${isScriptFont ? '' : 'bold '}${wSize}px '${wFont}', sans-serif`;
-            ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'bottom';
             
             // Drop shadow for high visibility contrast in bright/dark areas
             ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
@@ -150,7 +168,29 @@ export const applyAIRetouch = (
             ctx.shadowOffsetX = 1;
             ctx.shadowOffsetY = 1;
             
-            ctx.fillText(wText, width - 24, height - 24);
+            const bannerH = getBottomBannerHeight(watermarkOptions.framePreset || '', height);
+            if (bannerH > 0) {
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              
+              if (watermarkOptions.framePreset === 'polaroid' || watermarkOptions.framePreset === 'wedding_gold') {
+                if (watermarkOptions.framePreset === 'polaroid') {
+                  ctx.fillStyle = `rgba(30, 41, 59, ${wOpacity})`;
+                  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                } else {
+                  ctx.fillStyle = `rgba(180, 83, 9, ${wOpacity})`;
+                  ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+                }
+              } else {
+                ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
+              }
+              ctx.fillText(wText, width / 2, height - bannerH / 2);
+            } else {
+              ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
+              ctx.textAlign = 'right';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText(wText, width - 24, height - 24);
+            }
             ctx.restore();
           }
         };
@@ -387,7 +427,7 @@ const drawFramePreset = (
   switch (presetName) {
     case 'polaroid': {
       // Classic Polaroid: White frame border all around, thicker at the bottom.
-      const borderSize = Math.round(Math.min(width, height) * 0.04);
+      const borderSize = Math.round(Math.min(width, height) * 0.045);
       const bottomSpace = Math.round(height * 0.12);
 
       ctx.fillStyle = '#ffffff';
@@ -402,95 +442,201 @@ const drawFramePreset = (
       break;
     }
     case 'wedding_gold': {
-      // Elegant Wedding: Double gold thin borders and fine decorative curves in the corners
-      const pad = Math.round(Math.min(width, height) * 0.035);
-      const goldColor = '#eab308'; // Amber gold sheen representation
+      // Elegant Gold Wedding: Double gold thin borders with elegant royal ornaments and ivory-gold banner
+      const pad = Math.round(Math.min(width, height) * 0.03);
+      const barH = Math.round(height * 0.20);
       
-      ctx.strokeStyle = goldColor;
+      // Bottom banner: ivory gold gradient
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(254, 252, 232, 0.90)'); 
+      grad.addColorStop(1, 'rgba(253, 224, 71, 0.94)');  
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barH, width, barH);
+
+      // Gold borders
+      ctx.strokeStyle = '#d97706'; 
       ctx.lineWidth = 1.5;
       ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
-
       ctx.lineWidth = 0.5;
       ctx.strokeRect(pad + 4, pad + 4, width - (pad + 4) * 2, height - (pad + 4) * 2);
 
-      const drawCurl = (x: number, y: number) => {
+      // Corner ornaments
+      const drawOrnaments = (x: number, y: number, scaleX: number) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scaleX, 1);
+        ctx.strokeStyle = 'rgba(180, 83, 9, 0.6)';
+        ctx.lineWidth = 1.2;
+        
         ctx.beginPath();
-        ctx.arc(x, y, 16, 0, Math.PI * 0.5);
+        ctx.arc(35, -barH / 2, 16, 0, Math.PI * 1.5, true);
         ctx.stroke();
+        
         ctx.beginPath();
-        ctx.arc(x, y, 24, 0, Math.PI * 0.5);
+        ctx.arc(50, -barH / 2, 8, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
       };
       
-      ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
-      ctx.lineWidth = 1;
-      // top left
+      drawOrnaments(0, height, 1);
+      drawOrnaments(width, height, -1);
+      
+      // Brand stamp
+      ctx.fillStyle = 'rgba(180, 83, 9, 0.45)';
+      ctx.font = 'bold 8px "Outfit", sans-serif';
+      ctx.fillText("do'i picture", width - 60, height - 15);
+      break;
+    }
+    case 'rose_gold_floral': {
+      // Rose Gold Floral (Pink Wedding Frame) - Matches user request guest_photo_inside_1781160122707.png
+      const barH = Math.round(height * 0.22);
+      
+      // Bottom pink-to-rose-gold gradient strip
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(251, 207, 232, 0.84)'); // Soft pink
+      grad.addColorStop(0.5, 'rgba(244, 114, 182, 0.88)'); // Vivid pink
+      grad.addColorStop(1, 'rgba(219, 39, 119, 0.94)'); // Deep rose
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barH, width, barH);
+
+      // Thin inner white border
+      const pad = Math.round(Math.min(width, height) * 0.025);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+
+      // Draw beautiful white floral line art on left and right sides
+      const drawFloralDesign = (cx: number, cy: number, scaleX: number) => {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scaleX, 1);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 1.2;
+
+        // Draw flower 1
+        const fx1 = 50, fy1 = -barH * 0.5;
+        ctx.beginPath();
+        ctx.arc(fx1, fy1, 8, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * 2 * Math.PI) / 5;
+          const px = fx1 + Math.cos(a) * 22;
+          const py = fy1 + Math.sin(a) * 22;
+          ctx.beginPath();
+          ctx.arc(px, py, 14, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Draw leaf branch curling outwards
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.beginPath();
+        ctx.moveTo(fx1, fy1);
+        ctx.quadraticCurveTo(fx1 + 55, fy1 - 55, fx1 + 105, fy1 - 25);
+        ctx.stroke();
+
+        for (let t = 0.3; t <= 0.8; t += 0.25) {
+          const lx = fx1 + (105 - fx1) * t;
+          const ly = fy1 - 32;
+          ctx.beginPath();
+          ctx.ellipse(lx, ly, 10, 5, Math.PI / 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      };
+
+      drawFloralDesign(0, height, 1);
+      drawFloralDesign(width, height, -1);
+
+      // Logo brand stamp in bottom-right corner
       ctx.save();
-      ctx.translate(pad + 10, pad + 10);
-      ctx.rotate(Math.PI);
-      drawCurl(0, 0);
-      ctx.restore();
-      // bottom right
-      ctx.save();
-      ctx.translate(width - pad - 10, height - pad - 10);
-      drawCurl(0, 0);
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.font = 'bold 12px "Outfit", sans-serif';
+      ctx.fillText("do'i", width - 24, height - 28);
+      ctx.font = '10px "Playfair Display", serif';
+      ctx.fillText("picture", width - 24, height - 16);
       ctx.restore();
       break;
     }
     case 'botanical': {
-      // Golden Leaf: Organic gold leaf illustrations in bottom corners
+      // Golden Leaf: Organic gold leaves growing from corners and a white glass-morphic banner
+      const barH = Math.round(height * 0.18);
       const pad = Math.round(Math.min(width, height) * 0.03);
-      ctx.strokeStyle = '#ca8a04';
-      ctx.fillStyle = 'rgba(202, 138, 4, 0.12)';
-      ctx.lineWidth = 1.5;
 
-      const drawLeafNode = (bx: number, by: number, rot: number) => {
+      // Bottom glass-morphic banner
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillRect(0, height - barH, width, barH);
+      
+      // Thin golden inner border
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+
+      const drawLeafBranch = (x: number, y: number, scaleX: number) => {
         ctx.save();
-        ctx.translate(bx, by);
-        ctx.rotate(rot);
+        ctx.translate(x, y);
+        ctx.scale(scaleX, 1);
+        ctx.strokeStyle = '#ca8a04';
+        ctx.fillStyle = 'rgba(202, 138, 4, 0.2)';
+        ctx.lineWidth = 1.5;
+
+        // stem
         ctx.beginPath();
-        ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(10, 0);
+        ctx.quadraticCurveTo(40, -barH * 0.5, 90, -barH * 0.6);
         ctx.stroke();
+
+        // leaves
+        const drawLeafNode = (lx: number, ly: number, rot: number) => {
+          ctx.save();
+          ctx.translate(lx, ly);
+          ctx.rotate(rot);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        };
+
+        drawLeafNode(35, -barH * 0.25, -Math.PI / 4);
+        drawLeafNode(60, -barH * 0.45, -Math.PI / 4);
+        drawLeafNode(85, -barH * 0.58, -Math.PI / 4);
         ctx.restore();
       };
 
-      // Left corner leaf
-      ctx.save();
-      ctx.translate(pad + 20, height - pad - 20);
-      ctx.beginPath();
-      ctx.moveTo(-10, 10);
-      ctx.quadraticCurveTo(15, -15, 30, -30);
-      ctx.stroke();
-      drawLeafNode(8, -8, -Math.PI / 4);
-      drawLeafNode(18, -18, -Math.PI / 4);
-      drawLeafNode(28, -28, -Math.PI / 4);
-      ctx.restore();
-
-      // Right corner leaf
-      ctx.save();
-      ctx.translate(width - pad - 20, height - pad - 20);
-      ctx.scale(-1, 1);
-      ctx.beginPath();
-      ctx.moveTo(-10, 10);
-      ctx.quadraticCurveTo(15, -15, 30, -30);
-      ctx.stroke();
-      drawLeafNode(8, -8, -Math.PI / 4);
-      drawLeafNode(18, -18, -Math.PI / 4);
-      drawLeafNode(28, -28, -Math.PI / 4);
-      ctx.restore();
+      drawLeafBranch(0, height, 1);
+      drawLeafBranch(width, height, -1);
+      
+      // Brand stamp
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+      ctx.font = 'bold 8px "Outfit", sans-serif';
+      ctx.fillText("do'i picture", width - 60, height - 15);
       break;
     }
     case 'minimal_black': {
-      // Minimalist Black: A thin, clean black border
+      // Minimalist Editorial Black: Sleek magazine design with black bottom bar & camera metadata
       const pad = Math.round(Math.min(width, height) * 0.025);
+      const barH = Math.round(height * 0.15);
+
+      // Bottom black banner
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.fillRect(0, height - barH, width, barH);
+
+      // Border
       ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 3;
       ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+
+      // Editorial details
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '8px monospace';
+      ctx.fillText("do'ipicture EDITORIAL // SERIES A", 24, height - 18);
+      ctx.fillText("ISO 400  F/2.8  1/125s", width - 130, height - 18);
       break;
     }
     case 'retro_film': {
-      // Retro Film 35mm: Black borders with sprocket holes.
+      // Retro Film 35mm: Black film strip top and bottom with sprocket holes.
       const barHeight = Math.round(height * 0.09);
       ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, width, barHeight);
@@ -510,7 +656,7 @@ const drawFramePreset = (
 
       ctx.fillStyle = '#eab308';
       ctx.font = `bold ${Math.round(barHeight * 0.25)}px monospace`;
-      ctx.fillText('do\'ipicture FX-400', 20, barHeight + 12);
+      ctx.fillText("do'ipicture FX-400", 20, barHeight + 12);
       break;
     }
     case 'midnight_luxury': {
@@ -600,48 +746,6 @@ const drawFramePreset = (
       drawStar(width * 0.92, height - barH * 0.25, 4);
       break;
     }
-    case 'rose_gold_floral': {
-      // Rose Gold Floral: Thin rose gold borders with corner floral branch lines
-      const pad = Math.round(Math.min(width, height) * 0.035);
-      const roseGold = '#e0a899'; // Rose gold color representation
-      
-      ctx.strokeStyle = roseGold;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
-
-      // Draw floral branches in the top-right and bottom-left corners
-      const drawFloralBranch = (x: number, y: number, scaleX: number, scaleY: number) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(scaleX, scaleY);
-        ctx.strokeStyle = 'rgba(224, 168, 153, 0.75)';
-        ctx.lineWidth = 1;
-
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(20, -10, 40, -40);
-        ctx.stroke();
-
-        // draw small leaves
-        for (let i = 1; i <= 3; i++) {
-          const t = i / 4;
-          const lx = 40 * t;
-          const ly = -40 * t;
-          ctx.fillStyle = 'rgba(224, 168, 153, 0.3)';
-          ctx.beginPath();
-          ctx.ellipse(lx + 5, ly - 5, 6, 3, Math.PI / 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-        }
-        ctx.restore();
-      };
-
-      // Top right
-      drawFloralBranch(width - pad, pad, 1, 1);
-      // Bottom left
-      drawFloralBranch(pad, height - pad, -1, -1);
-      break;
-    }
     case 'vintage_paper': {
       // Vintage Parchment: A warm cream background border all around with a distressed inner border.
       const borderSize = Math.round(Math.min(width, height) * 0.05);
@@ -707,7 +811,19 @@ const drawFramePreset = (
       break;
     }
     case 'cherry_blossom': {
-      // Cherry Blossom: petals falling from corners
+      // Cherry Blossom Sakura: Soft pink/cream gradient bottom banner with scattered blossoms
+      const barH = Math.round(height * 0.18);
+      
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(253, 242, 248, 0.85)'); 
+      grad.addColorStop(1, 'rgba(251, 207, 232, 0.92)'); 
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barH, width, barH);
+
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(10, 10, width - 20, height - 20);
+
       const drawPetal = (cx: number, cy: number, rot: number, r: number) => {
         ctx.save();
         ctx.translate(cx, cy);
@@ -720,25 +836,14 @@ const drawFramePreset = (
         ctx.ellipse(0, 0, r, r * 0.6, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        
-        // Leaf vein
-        ctx.beginPath();
-        ctx.moveTo(-r, 0);
-        ctx.lineTo(r, 0);
-        ctx.stroke();
         ctx.restore();
       };
 
       // Corner petal groups
-      drawPetal(30, 40, Math.PI / 6, 8);
-      drawPetal(45, 30, Math.PI / 4, 6);
-      drawPetal(60, 50, -Math.PI / 12, 5);
-
-      drawPetal(width - 50, 45, Math.PI / 3, 7);
-      drawPetal(width - 35, 30, -Math.PI / 8, 9);
-
-      drawPetal(50, height - 40, -Math.PI / 6, 8);
-      drawPetal(width - 60, height - 50, Math.PI / 4, 6);
+      drawPetal(30, height - barH * 0.5, Math.PI / 6, 8);
+      drawPetal(45, height - barH * 0.6, Math.PI / 4, 6);
+      drawPetal(width - 50, height - barH * 0.5, Math.PI / 3, 7);
+      drawPetal(width - 35, height - barH * 0.4, -Math.PI / 8, 9);
       break;
     }
     case 'luxury_marble': {
@@ -776,7 +881,19 @@ const drawFramePreset = (
       break;
     }
     case 'christmas_holiday': {
-      // Christmas Holiday: Evergreen pine needles and bright red holly berries in corners.
+      // Christmas Holiday: Evergreen pine needles and bright red holly berries in corners and red bottom banner
+      const barH = Math.round(height * 0.18);
+      
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(220, 38, 38, 0.85)'); 
+      grad.addColorStop(1, 'rgba(127, 29, 29, 0.92)'); 
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barH, width, barH);
+
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(10, 10, width - 20, height - 20);
+
       const drawPineBranch = (x: number, y: number, rot: number) => {
         ctx.save();
         ctx.translate(x, y);
@@ -784,13 +901,11 @@ const drawFramePreset = (
         ctx.strokeStyle = '#065f46'; // dark green
         ctx.lineWidth = 1.5;
 
-        // Stem
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(35, 0);
         ctx.stroke();
 
-        // Needles
         ctx.lineWidth = 0.8;
         for (let i = 0; i < 30; i += 3) {
           ctx.beginPath();
@@ -802,21 +917,16 @@ const drawFramePreset = (
         }
 
         // Red berries
-        ctx.fillStyle = '#dc2626'; // bright red
+        ctx.fillStyle = '#dc2626'; 
         ctx.beginPath();
         ctx.arc(5, 3, 3, 0, Math.PI * 2);
         ctx.arc(8, -2, 3.5, 0, Math.PI * 2);
-        ctx.arc(12, 2, 3.2, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.restore();
       };
 
-      const pad = 10;
-      drawPineBranch(pad, pad, Math.PI / 4);
-      drawPineBranch(width - pad, pad, (Math.PI * 3) / 4);
-      drawPineBranch(pad, height - pad, -Math.PI / 4);
-      drawPineBranch(width - pad, height - pad, -(Math.PI * 3) / 4);
+      drawPineBranch(15, height - barH * 0.5, Math.PI / 4);
+      drawPineBranch(width - 15, height - barH * 0.5, -(Math.PI * 3) / 4);
       break;
     }
     default:
