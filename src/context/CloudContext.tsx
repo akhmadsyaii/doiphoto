@@ -12,6 +12,12 @@ export interface Album {
   watermarkImage: string | null;
   watermarkFont?: string;
   watermarkFramePreset?: string;
+  watermarkTextLine1?: string;
+  watermarkTextLine2?: string;
+  watermarkTextLine3?: string;
+  watermarkFontLine1?: string;
+  watermarkFontLine2?: string;
+  watermarkFontLine3?: string;
   activePreset: string;
   isAutoRetouchEnabled: boolean;
   reviewerMode: boolean;
@@ -103,6 +109,12 @@ interface CloudContextType {
   setReviewerMode: (enabled: boolean) => void;
   watermarkText: string;
   setWatermarkText: (text: string) => void;
+  watermarkTextLine1: string;
+  setWatermarkTextLine1: (text: string) => void;
+  watermarkTextLine2: string;
+  setWatermarkTextLine2: (text: string) => void;
+  watermarkTextLine3: string;
+  setWatermarkTextLine3: (text: string) => void;
   watermarkOpacity: number;
   setWatermarkOpacity: (opacity: number) => void;
   watermarkSize: number;
@@ -113,6 +125,12 @@ interface CloudContextType {
   setWatermarkImage: (image: string | null) => void;
   watermarkFont: string;
   setWatermarkFont: (font: string) => void;
+  watermarkFontLine1: string;
+  setWatermarkFontLine1: (font: string) => void;
+  watermarkFontLine2: string;
+  setWatermarkFontLine2: (font: string) => void;
+  watermarkFontLine3: string;
+  setWatermarkFontLine3: (font: string) => void;
   watermarkFramePreset: string;
   setWatermarkFramePreset: (preset: string) => void;
   guestSelfie: string | null;
@@ -263,12 +281,18 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [uploadMode, setUploadMode] = useState<'auto' | 'starred' | 'manual'>('auto');
   const [reviewerMode, setReviewerModeState] = useState<boolean>(false);
   const [watermarkText, setWatermarkTextState] = useState<string>('Do\'i picture');
-  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(0.8);
-  const [watermarkSize, setWatermarkSize] = useState<number>(20);
-  const [watermarkType, setWatermarkTypeState] = useState<'none' | 'text' | 'image' | 'both'>('text');
+  const [watermarkTextLine1, setWatermarkTextLine1State] = useState<string>('The Wedding of');
+  const [watermarkTextLine2, setWatermarkTextLine2State] = useState<string>('Bella & Thoyyib');
+  const [watermarkTextLine3, setWatermarkTextLine3State] = useState<string>('07 June 2026');
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(0.9);
+  const [watermarkSize, setWatermarkSize] = useState<number>(28);
+  const [watermarkType, setWatermarkTypeState] = useState<'none' | 'text' | 'image' | 'both'>(() => getActiveAlbumVal('watermarkType', 'both'));
   const [watermarkImage, setWatermarkImageState] = useState<string | null>(null);
   const [watermarkFont, setWatermarkFontState] = useState<string>('Outfit');
-  const [watermarkFramePreset, setWatermarkFramePresetState] = useState<string>('none');
+  const [watermarkFontLine1, setWatermarkFontLine1State] = useState<string>(() => getActiveAlbumVal('watermarkFontLine1', 'Outfit'));
+  const [watermarkFontLine2, setWatermarkFontLine2State] = useState<string>(() => getActiveAlbumVal('watermarkFontLine2', 'Great Vibes'));
+  const [watermarkFontLine3, setWatermarkFontLine3State] = useState<string>(() => getActiveAlbumVal('watermarkFontLine3', 'Outfit'));
+  const [watermarkFramePreset, setWatermarkFramePresetState] = useState<string>(() => getActiveAlbumVal('watermarkFramePreset', 'rose_gold_floral'));
   const [guestSelfie, setGuestSelfie] = useState<string | null>(null);
 
   // Multi-Album States
@@ -282,7 +306,32 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // ignore
       }
     }
+
+    // Migration: upgrade old albums that still have watermarkFramePreset = 'none'
+    // so that the preview shows the banner by default on first upgrade
+    let migrated = false;
+    currentAlbums = currentAlbums.map(album => {
+      if (!album.watermarkFramePreset || album.watermarkFramePreset === 'none') {
+        migrated = true;
+        return {
+          ...album,
+          watermarkFramePreset: 'rose_gold_floral',
+          watermarkType: 'both' as const,
+          watermarkTextLine1: album.watermarkTextLine1 || 'The Wedding of',
+          watermarkTextLine2: album.watermarkTextLine2 || 'Bella & Thoyyib',
+          watermarkTextLine3: album.watermarkTextLine3 || '07 June 2026',
+          watermarkFontLine1: album.watermarkFontLine1 || 'Outfit',
+          watermarkFontLine2: album.watermarkFontLine2 || 'Great Vibes',
+          watermarkFontLine3: album.watermarkFontLine3 || 'Outfit',
+        };
+      }
+      return album;
+    });
+    if (migrated) {
+      try { localStorage.setItem('doiphoto_albums', JSON.stringify(currentAlbums)); } catch { /* ignore */ }
+    }
     
+
     if (currentAlbums.length === 0) {
       currentAlbums = [
         {
@@ -290,11 +339,17 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           name: 'The Wedding Bella & Thoyyib',
           createdAt: Date.now() - 86400000,
           gdriveLink: '',
-          watermarkType: 'text',
-          watermarkText: 'Do\'i picture',
+          watermarkType: 'both',
+          watermarkText: "Do'i picture",
           watermarkImage: null,
           watermarkFont: 'Outfit',
-          watermarkFramePreset: 'none',
+          watermarkFramePreset: 'rose_gold_floral',
+          watermarkTextLine1: 'The Wedding of',
+          watermarkTextLine2: 'Bella & Thoyyib',
+          watermarkTextLine3: '07 June 2026',
+          watermarkFontLine1: 'Outfit',
+          watermarkFontLine2: 'Great Vibes',
+          watermarkFontLine3: 'Outfit',
           activePreset: 'wedding',
           isAutoRetouchEnabled: true,
           reviewerMode: false
@@ -329,6 +384,21 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setWatermarkText = (text: string) => {
     setWatermarkTextState(text);
     updateActiveAlbumProperty('watermarkText', text);
+  };
+
+  const setWatermarkTextLine1 = (text: string) => {
+    setWatermarkTextLine1State(text);
+    updateActiveAlbumProperty('watermarkTextLine1', text);
+  };
+
+  const setWatermarkTextLine2 = (text: string) => {
+    setWatermarkTextLine2State(text);
+    updateActiveAlbumProperty('watermarkTextLine2', text);
+  };
+
+  const setWatermarkTextLine3 = (text: string) => {
+    setWatermarkTextLine3State(text);
+    updateActiveAlbumProperty('watermarkTextLine3', text);
   };
 
   const setEventName = (name: string) => {
@@ -429,6 +499,21 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setWatermarkFont = (font: string) => {
     setWatermarkFontState(font);
     updateActiveAlbumProperty('watermarkFont', font);
+  };
+
+  const setWatermarkFontLine1 = (font: string) => {
+    setWatermarkFontLine1State(font);
+    updateActiveAlbumProperty('watermarkFontLine1', font);
+  };
+
+  const setWatermarkFontLine2 = (font: string) => {
+    setWatermarkFontLine2State(font);
+    updateActiveAlbumProperty('watermarkFontLine2', font);
+  };
+
+  const setWatermarkFontLine3 = (font: string) => {
+    setWatermarkFontLine3State(font);
+    updateActiveAlbumProperty('watermarkFontLine3', font);
   };
 
   const setWatermarkFramePreset = (preset: string) => {
@@ -585,8 +670,14 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setGDriveLinkState(activeAlbum.gdriveLink || '');
           setWatermarkTypeState(activeAlbum.watermarkType || 'text');
           setWatermarkTextState(activeAlbum.watermarkText || 'Do\'i picture');
+          setWatermarkTextLine1State(activeAlbum.watermarkTextLine1 !== undefined ? activeAlbum.watermarkTextLine1 : 'The Wedding of');
+          setWatermarkTextLine2State(activeAlbum.watermarkTextLine2 !== undefined ? activeAlbum.watermarkTextLine2 : 'Bella & Thoyyib');
+          setWatermarkTextLine3State(activeAlbum.watermarkTextLine3 !== undefined ? activeAlbum.watermarkTextLine3 : '07 June 2026');
           setWatermarkImageState(activeAlbum.watermarkImage || null);
           setWatermarkFontState(activeAlbum.watermarkFont || 'Outfit');
+          setWatermarkFontLine1State(activeAlbum.watermarkFontLine1 || 'Outfit');
+          setWatermarkFontLine2State(activeAlbum.watermarkFontLine2 || 'Great Vibes');
+          setWatermarkFontLine3State(activeAlbum.watermarkFontLine3 || 'Outfit');
           setWatermarkFramePresetState(activeAlbum.watermarkFramePreset || 'none');
           setActivePresetState(activeAlbum.activePreset || 'wedding');
           setIsAutoRetouchEnabledState(activeAlbum.isAutoRetouchEnabled !== undefined ? activeAlbum.isAutoRetouchEnabled : true);
@@ -947,6 +1038,18 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWatermarkImage,
         watermarkFont,
         setWatermarkFont,
+        watermarkTextLine1,
+        setWatermarkTextLine1,
+        watermarkTextLine2,
+        setWatermarkTextLine2,
+        watermarkTextLine3,
+        setWatermarkTextLine3,
+        watermarkFontLine1,
+        setWatermarkFontLine1,
+        watermarkFontLine2,
+        setWatermarkFontLine2,
+        watermarkFontLine3,
+        setWatermarkFontLine3,
         watermarkFramePreset,
         setWatermarkFramePreset,
         guestSelfie,

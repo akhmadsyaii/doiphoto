@@ -13,21 +13,44 @@ interface WatermarkOptions {
   image?: string | null;
   font?: string;
   framePreset?: string;
+  // Per-line text and font overrides
+  textLine1?: string;
+  textLine2?: string;
+  textLine3?: string;
+  fontLine1?: string;
+  fontLine2?: string;
+  fontLine3?: string;
 }
 
 const getBottomBannerHeight = (preset: string, height: number): number => {
   switch (preset) {
     case 'polaroid':
-      return Math.round(height * 0.12);
-    case 'wedding_gold':
-      return Math.round(height * 0.20);
-    case 'midnight_luxury':
-      return Math.round(height * 0.22);
-    case 'silver_sparkles':
       return Math.round(height * 0.15);
+    case 'wedding_gold':
+      return Math.round(height * 0.18);
+    case 'botanical':
+      return Math.round(height * 0.18);
+    case 'minimal_black':
+      return Math.round(height * 0.15);
+    case 'retro_film':
+      return Math.round(height * 0.14);
+    case 'midnight_luxury':
+      return Math.round(height * 0.20);
+    case 'neon_glow':
+      return Math.round(height * 0.15);
+    case 'soft_vignette':
+      return Math.round(height * 0.18);
+    case 'silver_sparkles':
+      return Math.round(height * 0.16);
     case 'rose_gold_floral':
-      return Math.round(height * 0.22);
+      return Math.round(height * 0.35);
+    case 'vintage_paper':
+      return Math.round(height * 0.18);
+    case 'cyberpunk_grid':
+      return Math.round(height * 0.16);
     case 'cherry_blossom':
+      return Math.round(height * 0.18);
+    case 'luxury_marble':
       return Math.round(height * 0.18);
     case 'christmas_holiday':
       return Math.round(height * 0.18);
@@ -151,45 +174,158 @@ export const applyAIRetouch = (
 
         // 3. Batch Watermarking overlay (frame + text layers)
         const drawTextWatermark = () => {
-          if (watermarkOptions && watermarkOptions.text && (watermarkOptions.type === 'text' || watermarkOptions.type === 'both')) {
+          if (watermarkOptions && (watermarkOptions.type === 'text' || watermarkOptions.type === 'both')) {
+            // Check if per-line mode is active
+            const hasPerLineText = !!(
+              watermarkOptions.textLine1 || watermarkOptions.textLine2 || watermarkOptions.textLine3
+            );
+
+            // Build lines array
+            const lines: string[] = hasPerLineText
+              ? [
+                  watermarkOptions.textLine1 || '',
+                  watermarkOptions.textLine2 || '',
+                  watermarkOptions.textLine3 || ''
+                ].filter(l => l.trim() !== '')
+              : (watermarkOptions.text || '').split('\n').filter(l => l.trim() !== '');
+
+            if (lines.length === 0) return;
+
             ctx.save();
-            const wText = watermarkOptions.text;
             const wSize = watermarkOptions.size || 20;
             const wOpacity = watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.8;
+            // Default (legacy) font
             const wFont = watermarkOptions.font || 'Outfit';
-            
-            // Adjust styling based on script font characteristics
-            const isScriptFont = ['Sacramento', 'Great Vibes', 'Alex Brush', 'Pacifico'].includes(wFont);
-            ctx.font = `${isScriptFont ? '' : 'bold '}${wSize}px '${wFont}', sans-serif`;
-            
-            // Drop shadow for high visibility contrast in bright/dark areas
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-            ctx.shadowBlur = 6;
-            ctx.shadowOffsetX = 1;
-            ctx.shadowOffsetY = 1;
-            
+            const fLine1 = watermarkOptions.fontLine1 || wFont;
+            const fLine2 = watermarkOptions.fontLine2 || wFont;
+            const fLine3 = watermarkOptions.fontLine3 || wFont;
+
             const bannerH = getBottomBannerHeight(watermarkOptions.framePreset || '', height);
+
+            // Determine text color based on frame preset
+            let textColor: string;
+            let shadowColor: string;
+            let shadowBlur: number;
+
+            const preset = watermarkOptions.framePreset || '';
+            const isLightPreset = [
+              'polaroid', 'wedding_gold', 'botanical',
+              'silver_sparkles', 'vintage_paper', 'cherry_blossom'
+            ].includes(preset);
+
+            if (isLightPreset) {
+              if (preset === 'polaroid') {
+                textColor = `rgba(30, 41, 59, ${wOpacity})`;
+                shadowColor = 'rgba(255, 255, 255, 0.5)';
+              } else if (preset === 'wedding_gold') {
+                textColor = `rgba(120, 53, 15, ${wOpacity})`;
+                shadowColor = 'rgba(255, 255, 255, 0.4)';
+              } else if (preset === 'botanical') {
+                textColor = `rgba(20, 83, 45, ${wOpacity})`;
+                shadowColor = 'rgba(255, 255, 255, 0.4)';
+              } else if (preset === 'cherry_blossom') {
+                textColor = `rgba(219, 39, 119, ${wOpacity})`;
+                shadowColor = 'rgba(255, 255, 255, 0.5)';
+              } else if (preset === 'vintage_paper') {
+                textColor = `rgba(69, 26, 3, ${wOpacity})`;
+                shadowColor = 'rgba(255, 255, 255, 0.3)';
+              } else {
+                textColor = `rgba(30, 41, 59, ${wOpacity})`;
+                shadowColor = 'rgba(255, 255, 255, 0.5)';
+              }
+              shadowBlur = 2;
+            } else {
+              if (preset === 'neon_glow' || preset === 'cyberpunk_grid') {
+                textColor = `rgba(34, 211, 238, ${wOpacity})`;
+                shadowColor = 'rgba(6, 182, 212, 0.5)';
+              } else {
+                textColor = `rgba(255, 255, 255, ${wOpacity})`;
+                shadowColor = 'rgba(0, 0, 0, 0.6)';
+              }
+              shadowBlur = 6;
+            }
+
+            ctx.fillStyle = textColor;
+            ctx.shadowColor = shadowColor;
+            ctx.shadowBlur = shadowBlur;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 1;
+
+            const isScript = (f: string) =>
+              ['Sacramento', 'Great Vibes', 'Alex Brush', 'Pacifico'].includes(f);
+
             if (bannerH > 0) {
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
-              
-              if (watermarkOptions.framePreset === 'polaroid' || watermarkOptions.framePreset === 'wedding_gold') {
-                if (watermarkOptions.framePreset === 'polaroid') {
-                  ctx.fillStyle = `rgba(30, 41, 59, ${wOpacity})`;
-                  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-                } else {
-                  ctx.fillStyle = `rgba(180, 83, 9, ${wOpacity})`;
-                  ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
-                }
+              const centerY = height - bannerH / 2;
+
+              if (lines.length === 1) {
+                const f = hasPerLineText ? fLine1 : fLine2;
+                ctx.font = `${isScript(f) ? '' : 'bold '}${wSize}px '${f}', sans-serif`;
+                ctx.fillText(lines[0], width / 2, centerY);
+              } else if (lines.length === 2) {
+                // Line 1
+                const f1 = hasPerLineText ? fLine1 : fLine1;
+                ctx.font = `${isScript(f1) ? '' : 'bold '}${Math.round(wSize * 0.55)}px '${f1}', sans-serif`;
+                ctx.fillText(lines[0], width / 2, centerY - wSize * 0.55);
+                // Line 2: main script/names
+                const f2 = hasPerLineText ? fLine2 : wFont;
+                ctx.font = `${isScript(f2) ? '' : 'bold '}${wSize}px '${f2}', sans-serif`;
+                ctx.fillText(lines[1], width / 2, centerY + wSize * 0.05);
               } else {
-                ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
+                // Line 1: small title label
+                const f1 = hasPerLineText ? fLine1 : (isLightPreset ? 'Outfit' : 'sans-serif');
+                ctx.font = `${isScript(f1) ? '' : 'bold '}${Math.round(wSize * 0.45)}px '${f1}', sans-serif`;
+                ctx.fillText(lines[0], width / 2, centerY - wSize * 0.7);
+                // Line 2: main script names
+                const f2 = hasPerLineText ? fLine2 : wFont;
+                ctx.font = `${isScript(f2) ? '' : 'bold '}${wSize}px '${f2}', sans-serif`;
+                ctx.fillText(lines[1], width / 2, centerY + wSize * 0.05);
+                // Line 3: date
+                const f3 = hasPerLineText ? fLine3 : (isLightPreset ? 'Outfit' : 'sans-serif');
+                ctx.font = `${isScript(f3) ? '' : 'bold '}${Math.round(wSize * 0.42)}px '${f3}', sans-serif`;
+                ctx.fillText(lines[2], width / 2, centerY + wSize * 0.75);
               }
-              ctx.fillText(wText, width / 2, height - bannerH / 2);
+
+              // Brand stamp: "Do'i" and "picture" styled elegantly in the bottom-right of the banner
+              ctx.save();
+              ctx.textAlign = 'right';
+              ctx.textBaseline = 'alphabetic';
+              const stampOpacity = wOpacity * 0.78;
+              const stampColor = isLightPreset
+                ? `rgba(30, 41, 59, ${stampOpacity})`
+                : `rgba(255, 255, 255, ${stampOpacity})`;
+              ctx.fillStyle = stampColor;
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+              
+              // Do'i text: bold serif/sans font
+              const doiSize = Math.max(16, Math.round(bannerH * 0.17));
+              ctx.font = `bold ${doiSize}px 'Outfit', sans-serif`;
+              ctx.fillText("Do'i", width - 24, height - Math.round(bannerH * 0.26));
+              
+              // picture text: regular small sans
+              const picSize = Math.max(10, Math.round(bannerH * 0.10));
+              ctx.font = `normal ${picSize}px 'Inter', sans-serif`;
+              ctx.fillText("picture", width - 24, height - Math.round(bannerH * 0.13));
+              ctx.restore();
             } else {
-              ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
+              // No banner: draw all lines stacked in bottom-right corner
               ctx.textAlign = 'right';
               ctx.textBaseline = 'bottom';
-              ctx.fillText(wText, width - 24, height - 24);
+              ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+              ctx.shadowBlur = 6;
+              ctx.shadowOffsetX = 1;
+              ctx.shadowOffsetY = 1;
+              const lineH = wSize * 1.25;
+              const startY = height - 24 - (lines.length - 1) * lineH;
+              lines.forEach((line, i) => {
+                const f = i === 0 ? fLine1 : i === 1 ? fLine2 : fLine3;
+                ctx.font = `${isScript(f) ? '' : 'bold '}${i === 1 ? wSize : Math.round(wSize * 0.7)}px '${f}', sans-serif`;
+                ctx.fillText(line, width - 24, startY + i * lineH);
+              });
             }
             ctx.restore();
           }
@@ -426,305 +562,588 @@ const drawFramePreset = (
 
   switch (presetName) {
     case 'polaroid': {
-      // Classic Polaroid: White frame border all around, thicker at the bottom.
-      const borderSize = Math.round(Math.min(width, height) * 0.045);
-      const bottomSpace = Math.round(height * 0.12);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, borderSize);
-      ctx.fillRect(0, 0, borderSize, height);
-      ctx.fillRect(width - borderSize, 0, borderSize, height);
-      ctx.fillRect(0, height - bottomSpace, width, bottomSpace);
-
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+      const barH = Math.round(height * 0.15);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+      ctx.fillRect(0, height - barH, width, barH);
+      
+      // subtle top boundary line
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.08)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(borderSize, borderSize, width - 2 * borderSize, height - borderSize - bottomSpace);
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.stroke();
       break;
     }
     case 'wedding_gold': {
-      // Elegant Gold Wedding: Double gold thin borders with elegant royal ornaments and ivory-gold banner
-      const pad = Math.round(Math.min(width, height) * 0.03);
-      const barH = Math.round(height * 0.20);
+      const barH = Math.round(height * 0.18);
       
-      // Bottom banner: ivory gold gradient
+      // Bottom banner: ivory gold gradient, slightly transparent
       const grad = ctx.createLinearGradient(0, height - barH, 0, height);
-      grad.addColorStop(0, 'rgba(254, 252, 232, 0.90)'); 
-      grad.addColorStop(1, 'rgba(253, 224, 71, 0.94)');  
+      grad.addColorStop(0, 'rgba(255, 254, 246, 0.85)'); 
+      grad.addColorStop(1, 'rgba(252, 244, 220, 0.92)');  
       ctx.fillStyle = grad;
       ctx.fillRect(0, height - barH, width, barH);
 
-      // Gold borders
-      ctx.strokeStyle = '#d97706'; 
+      // Gold top border and double lines
+      ctx.strokeStyle = 'rgba(194, 120, 3, 0.85)'; 
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(pad + 4, pad + 4, width - (pad + 4) * 2, height - (pad + 4) * 2);
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.moveTo(0, height - barH + 4);
+      ctx.lineTo(width, height - barH + 4);
+      ctx.stroke();
 
-      // Corner ornaments
+      // Classic baroque scrollwork corner ornaments
       const drawOrnaments = (x: number, y: number, scaleX: number) => {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scaleX, 1);
-        ctx.strokeStyle = 'rgba(180, 83, 9, 0.6)';
+        ctx.strokeStyle = 'rgba(194, 120, 3, 0.75)';
         ctx.lineWidth = 1.2;
         
+        // Concentric elegant border frame line
         ctx.beginPath();
-        ctx.arc(35, -barH / 2, 16, 0, Math.PI * 1.5, true);
+        ctx.moveTo(12, 0);
+        ctx.lineTo(12, -barH + 12);
+        ctx.quadraticCurveTo(12, -barH + 12, 24, -barH + 12);
+        ctx.lineTo(width * 0.22, -barH + 12);
         ctx.stroke();
         
+        // Baroque flourish curl 1
         ctx.beginPath();
-        ctx.arc(50, -barH / 2, 8, 0, Math.PI * 2);
+        ctx.arc(32, -barH + 26, 9, Math.PI, Math.PI * 2.4);
         ctx.stroke();
+        
+        // Baroque flourish curl 2
+        ctx.beginPath();
+        ctx.arc(58, -barH + 26, 5, 0, Math.PI * 1.8);
+        ctx.stroke();
+        
+        // Tiny gold leaf detail
+        ctx.beginPath();
+        ctx.moveTo(42, -barH + 26);
+        ctx.quadraticCurveTo(48, -barH + 18, 54, -barH + 20);
+        ctx.quadraticCurveTo(48, -barH + 28, 42, -barH + 26);
+        ctx.fillStyle = 'rgba(194, 120, 3, 0.25)';
+        ctx.fill();
+        ctx.stroke();
+        
+        // Small gold diamond accent in center of dividing line
+        ctx.fillStyle = 'rgba(194, 120, 3, 0.9)';
+        ctx.beginPath();
+        ctx.moveTo(width * 0.11, -barH + 12);
+        ctx.lineTo(width * 0.11 + 5, -barH + 7);
+        ctx.lineTo(width * 0.11 + 10, -barH + 12);
+        ctx.lineTo(width * 0.11 + 5, -barH + 17);
+        ctx.closePath();
+        ctx.fill();
+        
         ctx.restore();
       };
       
       drawOrnaments(0, height, 1);
       drawOrnaments(width, height, -1);
-      
-      // Brand stamp
-      ctx.fillStyle = 'rgba(180, 83, 9, 0.45)';
-      ctx.font = 'bold 8px "Outfit", sans-serif';
-      ctx.fillText("do'i picture", width - 60, height - 15);
       break;
     }
     case 'rose_gold_floral': {
-      // Rose Gold Floral (Pink Wedding Frame) - Matches user request guest_photo_inside_1781160122707.png
-      const barH = Math.round(height * 0.22);
-      
-      // Bottom pink-to-rose-gold gradient strip
-      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
-      grad.addColorStop(0, 'rgba(251, 207, 232, 0.84)'); // Soft pink
-      grad.addColorStop(0.5, 'rgba(244, 114, 182, 0.88)'); // Vivid pink
-      grad.addColorStop(1, 'rgba(219, 39, 119, 0.94)'); // Deep rose
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, height - barH, width, barH);
+      // ── ELEGANT ROSE FLORAL WEDDING BANNER ──
+      // Matches reference: large bottom banner, seamless vignette, detailed floral art
+      const barH = Math.round(height * 0.35);
+      const bannerTop = height - barH;
 
-      // Thin inner white border
-      const pad = Math.round(Math.min(width, height) * 0.025);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+      // 1. Seamless vignette from photo to banner (smooth transition)
+      const fadeGrad = ctx.createLinearGradient(0, bannerTop - barH * 0.25, 0, bannerTop + barH * 0.15);
+      fadeGrad.addColorStop(0, 'rgba(186, 68, 102, 0)');
+      fadeGrad.addColorStop(1, 'rgba(186, 68, 102, 0.65)');
+      ctx.fillStyle = fadeGrad;
+      ctx.fillRect(0, bannerTop - Math.round(barH * 0.25), width, Math.round(barH * 0.4));
 
-      // Draw beautiful white floral line art on left and right sides
-      const drawFloralDesign = (cx: number, cy: number, scaleX: number) => {
+      // 2. Main banner body gradient (deep rose to darker pink)
+      const bannerGrad = ctx.createLinearGradient(0, bannerTop, 0, height);
+      bannerGrad.addColorStop(0,   'rgba(202, 59, 102, 0.70)');
+      bannerGrad.addColorStop(0.4, 'rgba(186, 45,  85, 0.85)');
+      bannerGrad.addColorStop(1,   'rgba(148, 25,  60, 0.95)');
+      ctx.fillStyle = bannerGrad;
+      ctx.fillRect(0, bannerTop, width, barH);
+
+      // 3. Subtle horizontal sheen line at banner top
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      const sheenGrad = ctx.createLinearGradient(0, bannerTop, width, bannerTop);
+      sheenGrad.addColorStop(0,   'transparent');
+      sheenGrad.addColorStop(0.3, 'rgba(255,255,255,0.6)');
+      sheenGrad.addColorStop(0.7, 'rgba(255,255,255,0.6)');
+      sheenGrad.addColorStop(1,   'transparent');
+      ctx.fillStyle = sheenGrad;
+      ctx.fillRect(0, bannerTop, width, 2);
+      ctx.restore();
+
+      // ── FLORAL DRAWING PROCEDURES ──
+      const drawDetailedFlower = (
+        cx: number, cy: number,
+        r: number, rotation: number,
+        strokeColor: string, fillColor: string,
+        lw: number
+      ) => {
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.scale(scaleX, 1);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 1.2;
-
-        // Draw flower 1
-        const fx1 = 50, fy1 = -barH * 0.5;
-        ctx.beginPath();
-        ctx.arc(fx1, fy1, 8, 0, Math.PI * 2);
-        ctx.stroke();
-        for (let i = 0; i < 5; i++) {
-          const a = (i * 2 * Math.PI) / 5;
-          const px = fx1 + Math.cos(a) * 22;
-          const py = fy1 + Math.sin(a) * 22;
+        ctx.rotate(rotation);
+        
+        // 5 wavy petals
+        for (let p = 0; p < 5; p++) {
+          const angle = (p * Math.PI * 2) / 5;
+          ctx.save();
+          ctx.rotate(angle);
+          
+          ctx.strokeStyle = strokeColor;
+          ctx.fillStyle = fillColor;
+          ctx.lineWidth = lw;
+          
           ctx.beginPath();
-          ctx.arc(px, py, 14, 0, Math.PI * 2);
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(-r * 0.45, -r * 0.25, -r * 0.55, -r * 0.75, -r * 0.25, -r * 0.95);
+          ctx.bezierCurveTo(-r * 0.12, -r * 1.05, r * 0.12, -r * 1.05, r * 0.25, -r * 0.95);
+          ctx.bezierCurveTo(r * 0.55, -r * 0.75, r * 0.45, -r * 0.25, 0, 0);
+          ctx.fill();
           ctx.stroke();
-        }
-
-        // Draw leaf branch curling outwards
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-        ctx.beginPath();
-        ctx.moveTo(fx1, fy1);
-        ctx.quadraticCurveTo(fx1 + 55, fy1 - 55, fx1 + 105, fy1 - 25);
-        ctx.stroke();
-
-        for (let t = 0.3; t <= 0.8; t += 0.25) {
-          const lx = fx1 + (105 - fx1) * t;
-          const ly = fy1 - 32;
+          
+          // Internal petal vein lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = lw * 0.65;
           ctx.beginPath();
-          ctx.ellipse(lx, ly, 10, 5, Math.PI / 4, 0, Math.PI * 2);
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(0, -r * 0.5, 0, -r * 0.85);
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-r * 0.15, -r * 0.45, -r * 0.18, -r * 0.75);
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(r * 0.15, -r * 0.45, r * 0.18, -r * 0.75);
           ctx.stroke();
+          
+          ctx.restore();
         }
+        
+        // Central stamens
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = lw * 0.6;
+        for (let s = 0; s < 10; s++) {
+          const sa = (s * Math.PI * 2) / 10;
+          const len = r * 0.38;
+          const targetX = Math.cos(sa) * len;
+          const targetY = Math.sin(sa) * len;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(targetX, targetY);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.arc(targetX, targetY, r * 0.045, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.fill();
+        }
+        
+        // Center glow
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fill();
+        
         ctx.restore();
       };
 
-      drawFloralDesign(0, height, 1);
-      drawFloralDesign(width, height, -1);
+      const drawDetailedLeaf = (
+        x1: number, y1: number,
+        x2: number, y2: number,
+        cpx: number, cpy: number,
+        strokeColor: string, fillColor: string,
+        lw: number
+      ) => {
+        ctx.save();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = lw;
+        ctx.fillStyle = fillColor;
+        
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) {
+          ctx.restore();
+          return;
+        }
+        const nx = -dy / len;
+        const ny = dx / len;
+        
+        const thickness = len * 0.20;
+        const cx1 = cpx + nx * thickness;
+        const cy1 = cpy + ny * thickness;
+        const cx2 = cpx - nx * thickness;
+        const cy2 = cpy - ny * thickness;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(cx1, cy1, x2, y2);
+        ctx.quadraticCurveTo(cx2, cy2, x1, y1);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Midrib
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(cpx, cpy, x2, y2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.stroke();
+        
+        // Sub-veins
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = lw * 0.5;
+        const numVeins = 3;
+        for (let i = 1; i <= numVeins; i++) {
+          const t = i / (numVeins + 1);
+          const mt = 1 - t;
+          const rx = mt * mt * x1 + 2 * mt * t * cpx + t * t * x2;
+          const ry = mt * mt * y1 + 2 * mt * t * cpy + t * t * y2;
+          
+          const dxt = 2 * (1 - t) * (cpx - x1) + 2 * t * (x2 - cpx);
+          const dyt = 2 * (1 - t) * (cpy - y1) + 2 * t * (y2 - cpy);
+          const lent = Math.sqrt(dxt * dxt + dyt * dyt);
+          if (lent > 0) {
+            const nxt = -dyt / lent;
+            const nyt = dxt / lent;
+            const currentThick = thickness * (1 - t * 0.6);
+            
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx + (nxt * 0.8 + dxt/lent * 0.4) * currentThick, ry + (nyt * 0.8 + dyt/lent * 0.4) * currentThick);
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx - (nxt * 0.8 - dxt/lent * 0.4) * currentThick, ry - (nyt * 0.8 - dyt/lent * 0.4) * currentThick);
+            ctx.stroke();
+          }
+        }
+        
+        ctx.restore();
+      };
 
-      // Logo brand stamp in bottom-right corner
-      ctx.save();
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'bottom';
-      ctx.font = 'bold 12px "Outfit", sans-serif';
-      ctx.fillText("do'i", width - 24, height - 28);
-      ctx.font = '10px "Playfair Display", serif';
-      ctx.fillText("picture", width - 24, height - 16);
-      ctx.restore();
+      const drawTendril = (
+        sx: number, sy: number,
+        cpx1: number, cpy1: number,
+        cpx2: number, cpy2: number,
+        ex: number, ey: number,
+        strokeColor: string,
+        lw: number
+      ) => {
+        ctx.save();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = lw;
+        
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.bezierCurveTo(cpx1, cpy1, cpx2, cpy2, ex, ey);
+        ctx.stroke();
+        
+        // Spiral
+        ctx.beginPath();
+        let cx = ex;
+        let cy = ey;
+        let r = Math.min(width, height) * 0.015;
+        let angle = Math.atan2(ey - cpy2, ex - cpx2);
+        ctx.moveTo(cx, cy);
+        for (let i = 0; i < 20; i++) {
+          angle += 0.25;
+          r *= 0.90;
+          const px = ex + Math.cos(angle) * (Math.min(width, height) * 0.018 - r);
+          const py = ey + Math.sin(angle) * (Math.min(width, height) * 0.018 - r);
+          ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+      };
+
+      // ── DRAW ONE FULL FLORAL CLUSTER ──
+      const drawFloralCluster = (originX: number, originY: number, scaleX: number) => {
+        ctx.save();
+        ctx.translate(originX, originY);
+        ctx.scale(scaleX, 1);
+
+        const fw = width * 0.24;  // cluster width
+        const fh = barH * 1.1;   // cluster height
+
+        const lineWhite = 'rgba(255, 255, 255, 0.88)';
+        const fillPink  = 'rgba(255, 230, 240, 0.16)';
+        const stemColor = 'rgba(255, 255, 255, 0.55)';
+        const lw1 = Math.max(1, width * 0.0012);
+        const lw2 = Math.max(0.7, width * 0.0008);
+
+        // 1. STEMS & CURVING BRANCHES
+        drawTendril(0, 0, fw * 0.15, -fh * 0.25, fw * 0.35, -fh * 0.55, fw * 0.65, -fh * 0.68, stemColor, lw1 * 0.8);
+        drawTendril(fw * 0.25, -fh * 0.35, fw * 0.38, -fh * 0.52, fw * 0.52, -fh * 0.65, fw * 0.8, -fh * 0.72, stemColor, lw1 * 0.7);
+        drawTendril(0, -fh * 0.05, fw * 0.1, -fh * 0.2, fw * 0.12, -fh * 0.28, fw * 0.22, -fh * 0.35, stemColor, lw2);
+
+        // 2. LARGE FLOWERS
+        // Large Center Flower
+        drawDetailedFlower(fw * 0.38, -fh * 0.42, fw * 0.24, -Math.PI / 8, lineWhite, fillPink, lw1);
+        // Medium Upper-Right Flower
+        drawDetailedFlower(fw * 0.7, -fh * 0.7, fw * 0.16, Math.PI / 6, lineWhite, fillPink, lw1 * 0.9);
+        // Bud Flower
+        drawDetailedFlower(fw * 0.16, -fh * 0.22, fw * 0.11, -Math.PI / 4, lineWhite, fillPink, lw2);
+
+        // 3. ELEGANT LANCEOLATE LEAVES
+        // Leaf 1: Bottom Outer
+        drawDetailedLeaf(fw * 0.02, -fh * 0.05, fw * 0.22, -fh * 0.12, fw * 0.10, -fh * 0.04, lineWhite, fillPink, lw1);
+        // Leaf 2: Lower Inner
+        drawDetailedLeaf(fw * 0.12, -fh * 0.22, fw * 0.02, -fh * 0.44, fw * 0.04, -fh * 0.33, lineWhite, fillPink, lw1);
+        // Leaf 3: Center Mid
+        drawDetailedLeaf(fw * 0.28, -fh * 0.32, fw * 0.18, -fh * 0.58, fw * 0.20, -fh * 0.45, lineWhite, fillPink, lw1);
+        // Leaf 4: Center Upper
+        drawDetailedLeaf(fw * 0.48, -fh * 0.48, fw * 0.68, -fh * 0.42, fw * 0.58, -fh * 0.42, lineWhite, fillPink, lw2);
+        // Leaf 5: Upper Mid
+        drawDetailedLeaf(fw * 0.62, -fh * 0.64, fw * 0.52, -fh * 0.86, fw * 0.54, -fh * 0.75, lineWhite, fillPink, lw1);
+        // Leaf 6: Topmost Outer
+        drawDetailedLeaf(fw * 0.72, -fh * 0.72, fw * 0.88, -fh * 0.62, fw * 0.80, -fh * 0.65, lineWhite, fillPink, lw2);
+
+        // 4. SCATTERED DEW DROP SPARKLES
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+        const dots = [
+          { x: fw * 0.28, y: -fh * 0.08, r: fw * 0.015 },
+          { x: fw * 0.45, y: -fh * 0.22, r: fw * 0.012 },
+          { x: fw * 0.58, y: -fh * 0.12, r: fw * 0.018 },
+          { x: fw * 0.82, y: -fh * 0.48, r: fw * 0.013 },
+          { x: fw * 0.15, y: -fh * 0.62, r: fw * 0.010 },
+        ];
+        dots.forEach(d => {
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+
+        ctx.restore();
+      };
+
+      // Draw left cluster and mirrored right cluster
+      drawFloralCluster(0, height, 1);
+      drawFloralCluster(width, height, -1);
+
       break;
     }
     case 'botanical': {
       // Golden Leaf: Organic gold leaves growing from corners and a white glass-morphic banner
       const barH = Math.round(height * 0.18);
-      const pad = Math.round(Math.min(width, height) * 0.03);
 
       // Bottom glass-morphic banner
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(244, 252, 244, 0.82)'); 
+      grad.addColorStop(1, 'rgba(230, 248, 234, 0.90)'); 
+      ctx.fillStyle = grad;
       ctx.fillRect(0, height - barH, width, barH);
       
-      // Thin golden inner border
-      ctx.strokeStyle = '#ca8a04';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+      // Top gold dividing line
+      ctx.strokeStyle = 'rgba(180, 120, 4, 0.65)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.stroke();
 
       const drawLeafBranch = (x: number, y: number, scaleX: number) => {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scaleX, 1);
         ctx.strokeStyle = '#ca8a04';
-        ctx.fillStyle = 'rgba(202, 138, 4, 0.2)';
+        ctx.fillStyle = 'rgba(202, 138, 4, 0.12)';
         ctx.lineWidth = 1.5;
 
         // stem
         ctx.beginPath();
         ctx.moveTo(10, 0);
-        ctx.quadraticCurveTo(40, -barH * 0.5, 90, -barH * 0.6);
+        ctx.quadraticCurveTo(35, -barH * 0.45, 85, -barH * 0.55);
         ctx.stroke();
 
-        // leaves
-        const drawLeafNode = (lx: number, ly: number, rot: number) => {
+        // leaves with veins
+        const drawLeafNode = (lx: number, ly: number, rot: number, r: number) => {
           ctx.save();
           ctx.translate(lx, ly);
           ctx.rotate(rot);
+          ctx.strokeStyle = '#ca8a04';
+          ctx.fillStyle = 'rgba(253, 224, 71, 0.22)';
+          ctx.lineWidth = 1.1;
+          
           ctx.beginPath();
-          ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI * 2);
+          ctx.moveTo(-r, 0);
+          ctx.quadraticCurveTo(0, -r * 0.42, r, 0);
+          ctx.quadraticCurveTo(0, r * 0.42, -r, 0);
           ctx.fill();
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(-r, 0);
+          ctx.lineTo(r, 0);
+          ctx.strokeStyle = 'rgba(202, 138, 4, 0.55)';
           ctx.stroke();
           ctx.restore();
         };
 
-        drawLeafNode(35, -barH * 0.25, -Math.PI / 4);
-        drawLeafNode(60, -barH * 0.45, -Math.PI / 4);
-        drawLeafNode(85, -barH * 0.58, -Math.PI / 4);
+        drawLeafNode(32, -barH * 0.24, -Math.PI / 4, 11);
+        drawLeafNode(56, -barH * 0.42, -Math.PI / 4, 9);
+        drawLeafNode(78, -barH * 0.53, -Math.PI / 4, 7);
         ctx.restore();
       };
 
       drawLeafBranch(0, height, 1);
       drawLeafBranch(width, height, -1);
-      
-      // Brand stamp
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
-      ctx.font = 'bold 8px "Outfit", sans-serif';
-      ctx.fillText("do'i picture", width - 60, height - 15);
       break;
     }
     case 'minimal_black': {
       // Minimalist Editorial Black: Sleek magazine design with black bottom bar & camera metadata
-      const pad = Math.round(Math.min(width, height) * 0.025);
       const barH = Math.round(height * 0.15);
 
       // Bottom black banner
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
       ctx.fillRect(0, height - barH, width, barH);
 
-      // Border
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+      // Fine white line at top
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.stroke();
 
       // Editorial details
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = '8px monospace';
-      ctx.fillText("do'ipicture EDITORIAL // SERIES A", 24, height - 18);
-      ctx.fillText("ISO 400  F/2.8  1/125s", width - 130, height - 18);
+      ctx.fillStyle = 'rgba(248, 250, 252, 0.6)';
+      ctx.font = `${Math.round(barH * 0.18)}px monospace`;
+      ctx.fillText("do'ipicture EDITORIAL // SERIES A", 24, height - barH * 0.35);
+      ctx.fillText("ISO 400  F/2.8  1/125s", width - 180, height - barH * 0.35);
       break;
     }
     case 'retro_film': {
       // Retro Film 35mm: Black film strip top and bottom with sprocket holes.
-      const barHeight = Math.round(height * 0.09);
-      ctx.fillStyle = '#09090b';
-      ctx.fillRect(0, 0, width, barHeight);
-      ctx.fillRect(0, height - barHeight, width, barHeight);
+      const barH = Math.round(height * 0.14);
+      ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
+      ctx.fillRect(0, height - barH, width, barH);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      // Film sprocket holes along the bottom strip
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
       const holeW = Math.round(width * 0.015);
-      const holeH = Math.round(barHeight * 0.35);
-      const gap = Math.round(holeW * 1.8);
-      const startYTop = Math.round(barHeight * 0.3);
-      const startYBot = height - barHeight + Math.round(barHeight * 0.3);
-
+      const holeH = Math.round(barH * 0.28);
+      const gap = Math.round(holeW * 2);
+      
       for (let x = gap; x < width - gap; x += holeW + gap) {
-        ctx.fillRect(x, startYTop, holeW, holeH);
-        ctx.fillRect(x, startYBot, holeW, holeH);
+        ctx.fillRect(x, height - barH + Math.round(barH * 0.12), holeW, holeH);
+        ctx.fillRect(x, height - Math.round(barH * 0.4), holeW, holeH);
       }
 
       ctx.fillStyle = '#eab308';
-      ctx.font = `bold ${Math.round(barHeight * 0.25)}px monospace`;
-      ctx.fillText("do'ipicture FX-400", 20, barHeight + 12);
+      ctx.font = `bold ${Math.round(barH * 0.22)}px monospace`;
+      ctx.fillText("do'ipicture SAFETY FILM 400", gap, height - barH * 0.5);
+      ctx.fillText("▶ 12A", width - gap - 60, height - barH * 0.5);
       break;
     }
     case 'midnight_luxury': {
       // Midnight Luxury: Deep navy gradient at the bottom with gold geometric overlapping lines
-      const barHeight = Math.round(height * 0.22);
-      const grad = ctx.createLinearGradient(0, height - barHeight, 0, height);
-      grad.addColorStop(0, 'rgba(15, 23, 42, 0)');
-      grad.addColorStop(0.4, 'rgba(15, 23, 42, 0.55)');
-      grad.addColorStop(1, 'rgba(8, 15, 30, 0.92)');
+      const barH = Math.round(height * 0.20);
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(15, 23, 42, 0.72)');
+      grad.addColorStop(0.5, 'rgba(15, 23, 42, 0.82)');
+      grad.addColorStop(1, 'rgba(8, 15, 30, 0.90)');
 
       ctx.fillStyle = grad;
-      ctx.fillRect(0, height - barHeight, width, barHeight);
+      ctx.fillRect(0, height - barH, width, barH);
 
       ctx.strokeStyle = 'rgba(234, 179, 8, 0.45)';
       ctx.lineWidth = 1;
       ctx.beginPath();
+      
+      // left side geom
       ctx.moveTo(0, height);
-      ctx.lineTo(width * 0.25, height - barHeight * 0.5);
-      ctx.lineTo(width * 0.5, height);
-      ctx.moveTo(width * 0.5, height);
-      ctx.lineTo(width * 0.75, height - barHeight * 0.5);
+      ctx.lineTo(width * 0.2, height - barH * 0.6);
+      ctx.lineTo(width * 0.4, height);
+      
+      // right side geom
+      ctx.moveTo(width * 0.6, height);
+      ctx.lineTo(width * 0.8, height - barH * 0.6);
       ctx.lineTo(width, height);
       ctx.stroke();
       break;
     }
     case 'neon_glow': {
       // Neon Glow: Cyberpunk cyan and magenta neon glowing horizontal bars
-      const glowHeight = Math.round(height * 0.012);
-      
+      const barH = Math.round(height * 0.15);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.80)';
+      ctx.fillRect(0, height - barH, width, barH);
+
+      // Top glowing magenta neon strip
       ctx.save();
       ctx.shadowColor = '#d946ef';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.fillStyle = '#f472b6';
-      ctx.fillRect(0, 0, width, glowHeight);
+      ctx.fillRect(0, height - barH, width, 2);
       ctx.restore();
 
+      // Bottom glowing cyan neon strip
       ctx.save();
       ctx.shadowColor = '#06b6d4';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.fillStyle = '#22d3ee';
-      ctx.fillRect(0, height - glowHeight, width, glowHeight);
+      ctx.fillRect(0, height - 2, width, 2);
       ctx.restore();
+
+      // Technical crosshairs
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(20, height - barH * 0.5);
+      ctx.lineTo(40, height - barH * 0.5);
+      ctx.moveTo(30, height - barH * 0.5 - 10);
+      ctx.lineTo(30, height - barH * 0.5 + 10);
+      ctx.stroke();
       break;
     }
     case 'soft_vignette': {
-      // Soft Vignette: Cream/White fuzzy radial vignette
-      const vignette = ctx.createRadialGradient(
-        width / 2, height / 2, Math.min(width, height) * 0.4,
-        width / 2, height / 2, Math.max(width, height) * 0.65
-      );
-      vignette.addColorStop(0, 'rgba(255, 255, 255, 0)');
-      vignette.addColorStop(0.85, 'rgba(255, 255, 255, 0.2)');
-      vignette.addColorStop(1, 'rgba(255, 255, 255, 0.65)');
+      // Sunset Silhouette: Sunset orange to deep purple gradient banner
+      const barH = Math.round(height * 0.18);
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(251, 146, 60, 0.72)'); 
+      grad.addColorStop(1, 'rgba(147, 51, 234, 0.82)'); 
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barH, width, barH);
 
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, width, height);
+      // Draw simple white bird silhouettes on the sides
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      const drawBird = (bx: number, by: number) => {
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(bx + 8, by - 6, bx + 16, by);
+        ctx.quadraticCurveTo(bx + 24, by - 6, bx + 32, by);
+        ctx.quadraticCurveTo(bx + 24, by - 1, bx + 16, by - 3);
+        ctx.quadraticCurveTo(bx + 8, by - 1, bx, by);
+        ctx.closePath();
+        ctx.fill();
+      };
+      
+      drawBird(width * 0.1, height - barH * 0.6);
+      drawBird(width * 0.15, height - barH * 0.45);
+      drawBird(width * 0.82, height - barH * 0.7);
+      drawBird(width * 0.86, height - barH * 0.5);
       break;
     }
     case 'silver_sparkles': {
       // Silver Sparkles: Silver gradient border on the bottom with starry sparkles
-      const barH = Math.round(height * 0.15);
+      const barH = Math.round(height * 0.16);
       const sGrad = ctx.createLinearGradient(0, height - barH, 0, height);
-      sGrad.addColorStop(0, 'rgba(226, 232, 240, 0)');
-      sGrad.addColorStop(0.5, 'rgba(226, 232, 240, 0.4)');
-      sGrad.addColorStop(1, 'rgba(148, 163, 184, 0.7)');
-
+      sGrad.addColorStop(0, 'rgba(241, 245, 249, 0.75)');
+      sGrad.addColorStop(1, 'rgba(203, 213, 225, 0.84)');
       ctx.fillStyle = sGrad;
       ctx.fillRect(0, height - barH, width, barH);
+
+      // Subtle top divider line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.stroke();
 
       const drawStar = (cx: number, cy: number, r: number) => {
         ctx.beginPath();
@@ -741,73 +1160,88 @@ const drawFramePreset = (
         ctx.fill();
       };
 
-      drawStar(width * 0.12, height - barH * 0.4, 5);
-      drawStar(width * 0.88, height - barH * 0.5, 7);
-      drawStar(width * 0.92, height - barH * 0.25, 4);
+      drawStar(width * 0.08, height - barH * 0.5, 6);
+      drawStar(width * 0.14, height - barH * 0.35, 4);
+      drawStar(width * 0.88, height - barH * 0.45, 8);
+      drawStar(width * 0.93, height - barH * 0.6, 5);
       break;
     }
     case 'vintage_paper': {
-      // Vintage Parchment: A warm cream background border all around with a distressed inner border.
-      const borderSize = Math.round(Math.min(width, height) * 0.05);
+      // Vintage Parchment: Warm paper texture banner with Victorian curl accents
+      const barH = Math.round(height * 0.18);
       
-      // Cream paper background border
-      ctx.fillStyle = '#fbf0d9';
-      ctx.fillRect(0, 0, width, borderSize);
-      ctx.fillRect(0, 0, borderSize, height);
-      ctx.fillRect(width - borderSize, 0, borderSize, height);
-      ctx.fillRect(0, height - borderSize, width, borderSize);
+      const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+      grad.addColorStop(0, 'rgba(251, 243, 219, 0.80)'); 
+      grad.addColorStop(1, 'rgba(243, 225, 187, 0.88)'); 
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, height - barH, width, barH);
 
-      // Distressed brown inner border
-      ctx.strokeStyle = '#854d0e';
+      // Distressed brown horizontal lines
+      ctx.strokeStyle = 'rgba(133, 77, 14, 0.6)';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(borderSize - 2, borderSize - 2, width - (borderSize - 2) * 2, height - (borderSize - 2) * 2);
+      ctx.beginPath();
+      ctx.moveTo(10, height - barH + 5);
+      ctx.lineTo(width - 10, height - barH + 5);
+      ctx.moveTo(10, height - barH + 9);
+      ctx.lineTo(width - 10, height - barH + 9);
+      ctx.stroke();
       
-      // Draw corner accents
-      ctx.fillStyle = '#854d0e';
-      const cornerSize = 8;
-      ctx.fillRect(borderSize - 5, borderSize - 5, cornerSize, cornerSize);
-      ctx.fillRect(width - borderSize - 3, borderSize - 5, cornerSize, cornerSize);
-      ctx.fillRect(borderSize - 5, height - borderSize - 3, cornerSize, cornerSize);
-      ctx.fillRect(width - borderSize - 3, height - borderSize - 3, cornerSize, cornerSize);
+      const drawVictorianCurl = (cx: number, cy: number, scaleX: number) => {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scaleX, 1);
+        ctx.strokeStyle = 'rgba(133, 77, 14, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(30, -barH / 2, 8, 0, Math.PI * 1.5, true);
+        ctx.stroke();
+        ctx.restore();
+      };
+      
+      drawVictorianCurl(0, height, 1);
+      drawVictorianCurl(width, height, -1);
       break;
     }
     case 'cyberpunk_grid': {
-      // Cyberpunk HUD: Electric blue corner brackets and targeting overlay lines.
-      const pad = Math.round(Math.min(width, height) * 0.04);
-      const neonBlue = '#06b6d4';
-      ctx.strokeStyle = neonBlue;
-      ctx.lineWidth = 2;
+      // Cyberpunk Grid: Electric grid overlay and targeting lines
+      const barH = Math.round(height * 0.16);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+      ctx.fillRect(0, height - barH, width, barH);
 
-      // Draw brackets
-      const len = 30;
-      // top-left
+      // grid line overlay
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.12)';
+      ctx.lineWidth = 0.5;
+      const gridSize = 12;
+      for (let x = 0; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, height - barH);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = height - barH; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // brackets
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 1.5;
+      const pad = 10;
+      const len = 15;
+      
       ctx.beginPath();
-      ctx.moveTo(pad + len, pad); ctx.lineTo(pad, pad); ctx.lineTo(pad, pad + len);
-      ctx.stroke();
-      // top-right
-      ctx.beginPath();
-      ctx.moveTo(width - pad - len, pad); ctx.lineTo(width - pad, pad); ctx.lineTo(width - pad, pad + len);
-      ctx.stroke();
-      // bottom-left
-      ctx.beginPath();
-      ctx.moveTo(pad + len, height - pad); ctx.lineTo(pad, height - pad); ctx.lineTo(pad, height - pad + len);
-      ctx.stroke();
-      // bottom-right
-      ctx.beginPath();
-      ctx.moveTo(width - pad - len, height - pad); ctx.lineTo(width - pad, height - pad); ctx.lineTo(width - pad, height - pad + len);
+      ctx.moveTo(pad + len, height - barH + pad);
+      ctx.lineTo(pad, height - barH + pad);
+      ctx.lineTo(pad, height - barH + pad + len);
       ctx.stroke();
 
-      // Technical crosshairs in the corners
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
-      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(pad + 10, pad + 10); ctx.lineTo(pad + 10, pad + 25);
-      ctx.moveTo(pad + 10, pad + 10); ctx.lineTo(pad + 25, pad + 10);
+      ctx.moveTo(width - pad - len, height - barH + pad);
+      ctx.lineTo(width - pad, height - barH + pad);
+      ctx.lineTo(width - pad, height - barH + pad + len);
       ctx.stroke();
-
-      ctx.fillStyle = neonBlue;
-      ctx.font = '8px monospace';
-      ctx.fillText('REC // SYSTEM ACTIVE', pad + 40, pad + 12);
       break;
     }
     case 'cherry_blossom': {
@@ -815,84 +1249,113 @@ const drawFramePreset = (
       const barH = Math.round(height * 0.18);
       
       const grad = ctx.createLinearGradient(0, height - barH, 0, height);
-      grad.addColorStop(0, 'rgba(253, 242, 248, 0.85)'); 
-      grad.addColorStop(1, 'rgba(251, 207, 232, 0.92)'); 
+      grad.addColorStop(0, 'rgba(255, 241, 242, 0.80)'); 
+      grad.addColorStop(1, 'rgba(253, 220, 235, 0.90)'); 
       ctx.fillStyle = grad;
       ctx.fillRect(0, height - barH, width, barH);
 
-      ctx.strokeStyle = '#f472b6';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(10, 10, width - 20, height - 20);
+      ctx.strokeStyle = 'rgba(244, 114, 182, 0.65)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.stroke();
 
-      const drawPetal = (cx: number, cy: number, rot: number, r: number) => {
+      const drawSakuraFlower = (cx: number, cy: number, r: number, rot: number) => {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(rot);
-        ctx.fillStyle = '#fbcfe8'; // soft pink
-        ctx.strokeStyle = '#f472b6'; // rose pink
-        ctx.lineWidth = 0.5;
         
+        ctx.fillStyle = 'rgba(255, 245, 247, 0.95)';
+        ctx.strokeStyle = 'rgba(244, 114, 182, 0.75)';
+        ctx.lineWidth = 1;
+        
+        // 5 notched petals
+        for (let i = 0; i < 5; i++) {
+          const angle = (i * Math.PI * 2) / 5;
+          ctx.save();
+          ctx.rotate(angle);
+          
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(-r * 0.5, -r * 0.3, -r * 0.6, -r * 0.9, -r * 0.2, -r);
+          ctx.lineTo(0, -r * 0.82);
+          ctx.lineTo(r * 0.2, -r);
+          ctx.bezierCurveTo(r * 0.6, -r * 0.9, r * 0.5, -r * 0.3, 0, 0);
+          
+          ctx.fill();
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(0, -r * 0.55);
+          ctx.strokeStyle = 'rgba(244, 114, 182, 0.45)';
+          ctx.stroke();
+          
+          ctx.restore();
+        }
+        
+        // Flower center stamens
+        ctx.fillStyle = '#db2777';
         ctx.beginPath();
-        ctx.ellipse(0, 0, r, r * 0.6, 0, 0, Math.PI * 2);
+        ctx.arc(0, 0, r * 0.14, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
+        
         ctx.restore();
       };
 
-      // Corner petal groups
-      drawPetal(30, height - barH * 0.5, Math.PI / 6, 8);
-      drawPetal(45, height - barH * 0.6, Math.PI / 4, 6);
-      drawPetal(width - 50, height - barH * 0.5, Math.PI / 3, 7);
-      drawPetal(width - 35, height - barH * 0.4, -Math.PI / 8, 9);
+      drawSakuraFlower(width * 0.08, height - barH * 0.6, 9, Math.PI / 6);
+      drawSakuraFlower(width * 0.14, height - barH * 0.38, 6, Math.PI / 4);
+      drawSakuraFlower(width * 0.86, height - barH * 0.5, 8, -Math.PI / 8);
+      drawSakuraFlower(width * 0.92, height - barH * 0.35, 7, Math.PI / 3);
       break;
     }
     case 'luxury_marble': {
-      // Luxury Marble: Dark graphite border with scattered golden veins.
-      const borderSize = Math.round(Math.min(width, height) * 0.045);
-      
-      // Graphite border
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 0, width, borderSize);
-      ctx.fillRect(0, 0, borderSize, height);
-      ctx.fillRect(width - borderSize, 0, borderSize, height);
-      ctx.fillRect(0, height - borderSize, width, borderSize);
+      // Luxury Marble: Slate graphite base with gold veins
+      const barH = Math.round(height * 0.18);
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.82)';
+      ctx.fillRect(0, height - barH, width, barH);
 
       // Gold veins
-      ctx.strokeStyle = '#ca8a04';
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH * 0.4);
+      ctx.lineTo(width * 0.15, height - barH * 0.8);
+      ctx.lineTo(width * 0.25, height - barH * 0.2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(width * 0.75, height - barH * 0.1);
+      ctx.lineTo(width * 0.85, height - barH * 0.7);
+      ctx.lineTo(width, height - barH * 0.3);
+      ctx.stroke();
+
+      // Top border gold line
+      ctx.strokeStyle = '#eab308';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      // vein 1 top left
-      ctx.moveTo(0, borderSize * 0.5);
-      ctx.lineTo(borderSize * 3, borderSize * 0.2);
-      ctx.lineTo(borderSize * 4, borderSize * 0.8);
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
       ctx.stroke();
-
-      // vein 2 bottom right
-      ctx.beginPath();
-      ctx.moveTo(width - borderSize * 3, height - borderSize * 0.8);
-      ctx.lineTo(width - borderSize * 1.5, height - borderSize * 0.2);
-      ctx.lineTo(width, height - borderSize * 0.5);
-      ctx.stroke();
-
-      // Inner gold frame line
-      ctx.strokeStyle = '#eab308';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(borderSize + 2, borderSize + 2, width - (borderSize + 2) * 2, height - (borderSize + 2) * 2);
       break;
     }
     case 'christmas_holiday': {
-      // Christmas Holiday: Evergreen pine needles and bright red holly berries in corners and red bottom banner
+      // Christmas Holiday: Evergreen pine needles and holly berries
       const barH = Math.round(height * 0.18);
       
       const grad = ctx.createLinearGradient(0, height - barH, 0, height);
-      grad.addColorStop(0, 'rgba(220, 38, 38, 0.85)'); 
-      grad.addColorStop(1, 'rgba(127, 29, 29, 0.92)'); 
+      grad.addColorStop(0, 'rgba(239, 68, 68, 0.76)'); 
+      grad.addColorStop(1, 'rgba(185, 28, 28, 0.86)'); 
       ctx.fillStyle = grad;
       ctx.fillRect(0, height - barH, width, barH);
 
-      ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 1.2;
-      ctx.strokeRect(10, 10, width - 20, height - 20);
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height - barH);
+      ctx.lineTo(width, height - barH);
+      ctx.stroke();
 
       const drawPineBranch = (x: number, y: number, rot: number) => {
         ctx.save();
@@ -916,11 +1379,10 @@ const drawFramePreset = (
           ctx.stroke();
         }
 
-        // Red berries
         ctx.fillStyle = '#dc2626'; 
         ctx.beginPath();
-        ctx.arc(5, 3, 3, 0, Math.PI * 2);
-        ctx.arc(8, -2, 3.5, 0, Math.PI * 2);
+        ctx.arc(5, 3, 2.5, 0, Math.PI * 2);
+        ctx.arc(8, -2, 3, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       };
@@ -934,4 +1396,4 @@ const drawFramePreset = (
   }
 
   ctx.restore();
-};
+};;

@@ -1,26 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCloud } from '../context/CloudContext';
 import { applyAIRetouch } from '../utils/AIRetoucher';
-import { Sliders, Sparkles, AlertCircle, RefreshCw, Layers, Type, Shield, Upload, Trash2, SlidersHorizontal } from 'lucide-react';
+import { Sliders, Sparkles, AlertCircle, RefreshCw, Layers, Type, Shield, Upload, Trash2, SlidersHorizontal, ZoomIn, X, Maximize2 } from 'lucide-react';
 import { parseLightroomPreset } from '../utils/presetParser';
 
 const FRAME_PRESETS = [
-  { id: 'none', name: 'Tanpa Bingkai', desc: 'Foto bersih tanpa bingkai', icon: '❌' },
-  { id: 'polaroid', name: 'Classic Polaroid', desc: 'Bingkai putih retro instan', icon: '📸' },
-  { id: 'wedding_gold', name: 'Elegant Wedding', desc: 'Garis emas ganda & sulur dekoratif', icon: '👑' },
-  { id: 'botanical', name: 'Golden Leaf', desc: 'Lekukan daun emas organik di sudut', icon: '🌿' },
-  { id: 'minimal_black', name: 'Minimalist Black', desc: 'Garis hitam tipis bingkai editorial', icon: '🖤' },
-  { id: 'retro_film', name: 'Retro Film 35mm', desc: 'Film strip hitam & lubang sprocket', icon: '🎞️' },
-  { id: 'midnight_luxury', name: 'Midnight Luxury', desc: 'Navy bar & garis geometris emas', icon: '💎' },
-  { id: 'neon_glow', name: 'Neon Glow', desc: 'Glow neon cyan & magenta berpendar', icon: '⚡' },
-  { id: 'soft_vignette', name: 'Soft Vignette', desc: 'Efek vignette putih kabur romantis', icon: '☁️' },
-  { id: 'silver_sparkles', name: 'Silver Sparkles', desc: 'Gradasi perak & bintang berkelip', icon: '✨' },
-  { id: 'rose_gold_floral', name: 'Rose Gold Floral', desc: 'Garis rose gold & sulur mawar manis', icon: '🌸' },
-  { id: 'vintage_paper', name: 'Vintage Parchment', desc: 'Tepi kertas usang & garis batas klasik', icon: '📜' },
-  { id: 'cyberpunk_grid', name: 'Cyberpunk HUD', desc: 'Elemen antarmuka digital futuristik', icon: '👾' },
-  { id: 'cherry_blossom', name: 'Sakura Spring', desc: 'Kelopak sakura berguguran di sudut', icon: '🏵️' },
-  { id: 'luxury_marble', name: 'Luxury Marble', desc: 'Marmer hitam dengan serat emas', icon: '🏛️' },
-  { id: 'christmas_holiday', name: 'Holiday Holly', desc: 'Daun cemara & buah holly merah meriah', icon: '🎄' },
+  { id: 'none', name: 'Tanpa Banner', desc: 'Foto bersih tanpa banner dekoratif', icon: '❌' },
+  { id: 'polaroid', name: 'Classic White Banner', desc: 'Banner putih minimalis di bawah foto', icon: '📸' },
+  { id: 'wedding_gold', name: 'Elegant Wedding Gold', desc: 'Banner emas & sulur dekoratif mewah', icon: '👑' },
+  { id: 'botanical', name: 'Sage Botanical', desc: 'Banner hijau sage & sulur daun emas', icon: '🌿' },
+  { id: 'minimal_black', name: 'Minimalist Slate', desc: 'Banner hitam tipis dengan info metadata', icon: '🖤' },
+  { id: 'retro_film', name: 'Retro Film 35mm', desc: 'Banner klise film hitam & lubang sprocket', icon: '🎞️' },
+  { id: 'midnight_luxury', name: 'Midnight Blue', desc: 'Banner navy & garis geometris emas', icon: '💎' },
+  { id: 'neon_glow', name: 'Cyberpunk Neon', desc: 'Banner gelap & garis neon cyan-magenta', icon: '⚡' },
+  { id: 'soft_vignette', name: 'Sunset Silhouette', desc: 'Banner gradasi senja & siluet daun palem', icon: '☁️' },
+  { id: 'silver_sparkles', name: 'Silver Sparkles', desc: 'Banner perak & bintang berkelip cantik', icon: '✨' },
+  { id: 'rose_gold_floral', name: 'Rose Gold Floral', desc: 'Banner pink & sulur mawar manis', icon: '🌸' },
+  { id: 'vintage_paper', name: 'Vintage Parchment', desc: 'Banner kertas usang & dekorasi klasik', icon: '📜' },
+  { id: 'cyberpunk_grid', name: 'Cyber Tech Grid', desc: 'Banner digital grid & indikator target', icon: '👾' },
+  { id: 'cherry_blossom', name: 'Sakura Blossom', desc: 'Banner kelopak sakura berguguran', icon: '🏵️' },
+  { id: 'luxury_marble', name: 'Luxury Marble', desc: 'Banner marmer hitam & serat emas', icon: '🏛️' },
+  { id: 'christmas_holiday', name: 'Holiday Evergreen', desc: 'Banner merah festival & daun cemara', icon: '🎄' },
   { id: 'custom', name: 'Unggah Kustom', desc: 'Gunakan file desain PNG Anda', icon: '📤' }
 ];
 
@@ -105,7 +105,7 @@ const PRESET_INFOS = [
 ];
 
 // High quality sample portrait for retouch comparisons
-const PREVIEW_SAMPLE = '/portrait_preview.png';
+const PREVIEW_SAMPLE = '/wedding_preview.png';
 
 export const RetouchProfilesView: React.FC = () => {
   const { 
@@ -114,7 +114,12 @@ export const RetouchProfilesView: React.FC = () => {
     isAutoRetouchEnabled, 
     setIsAutoRetouchEnabled,
     watermarkText,
-    setWatermarkText,
+    watermarkTextLine1,
+    setWatermarkTextLine1,
+    watermarkTextLine2,
+    setWatermarkTextLine2,
+    watermarkTextLine3,
+    setWatermarkTextLine3,
     watermarkOpacity,
     setWatermarkOpacity,
     watermarkSize,
@@ -124,7 +129,12 @@ export const RetouchProfilesView: React.FC = () => {
     watermarkImage,
     setWatermarkImage,
     watermarkFont,
-    setWatermarkFont,
+    watermarkFontLine1,
+    setWatermarkFontLine1,
+    watermarkFontLine2,
+    setWatermarkFontLine2,
+    watermarkFontLine3,
+    setWatermarkFontLine3,
     watermarkFramePreset,
     setWatermarkFramePreset,
     isFacialSmoothingEnabled,
@@ -159,13 +169,15 @@ export const RetouchProfilesView: React.FC = () => {
     setCustomWarmth
   } = useCloud();
 
-  const [sliderPos, setSliderPos] = useState<number>(50);
+  const [sliderPos, setSliderPos] = useState<number>(22);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [originalUrl] = useState<string>(PREVIEW_SAMPLE);
   const [retouchedUrl, setRetouchedUrl] = useState<string>(PREVIEW_SAMPLE);
   const [loading, setLoading] = useState<boolean>(false);
+
 
   // Apply selected preset and watermarking options to preview
   useEffect(() => {
@@ -197,7 +209,13 @@ export const RetouchProfilesView: React.FC = () => {
           type: watermarkType,
           image: watermarkImage,
           font: watermarkFont,
-          framePreset: watermarkFramePreset
+          framePreset: watermarkFramePreset,
+          textLine1: watermarkTextLine1,
+          textLine2: watermarkTextLine2,
+          textLine3: watermarkTextLine3,
+          fontLine1: watermarkFontLine1,
+          fontLine2: watermarkFontLine2,
+          fontLine3: watermarkFontLine3
         }, mSettings);
         setRetouchedUrl(retouched);
       } catch (err) {
@@ -217,6 +235,12 @@ export const RetouchProfilesView: React.FC = () => {
     watermarkImage,
     watermarkFont,
     watermarkFramePreset,
+    watermarkTextLine1,
+    watermarkTextLine2,
+    watermarkTextLine3,
+    watermarkFontLine1,
+    watermarkFontLine2,
+    watermarkFontLine3,
     isFacialSmoothingEnabled, 
     isPlateBlurringEnabled,
     manualBrightness,
@@ -270,7 +294,7 @@ export const RetouchProfilesView: React.FC = () => {
 
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px', flex: 1, minHeight: 0 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px', flex: 1, minHeight: 0 }}>
       
       {/* Left Column: Draggable split slider */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
@@ -299,60 +323,158 @@ export const RetouchProfilesView: React.FC = () => {
           </div>
         </div>
 
-        {/* Live Slider Canvas */}
-        <div 
-          ref={containerRef}
-          onMouseMove={handleMouseMove}
-          onTouchMove={handleTouchMove}
-          onMouseDown={() => setIsDragging(true)}
-          onTouchStart={() => setIsDragging(true)}
-          className="slider-container"
-          style={{ flex: 1, cursor: 'ew-resize', position: 'relative', background: '#0a0a0c' }}
+        {/* Live Slider Canvas – fixed 16:9 */}
+        <div
+          style={{ position: 'relative', width: '100%', aspectRatio: '16/9', maxHeight: '50vh', background: '#0a0a0c', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
         >
-          {/* Before */}
-          <div className="slider-image-before">
-            <img src={originalUrl} alt="Original unretouched shot" style={{ pointerEvents: 'none' }} />
-            <span style={{ position: 'absolute', bottom: '16px', left: '16px', zIndex: 10, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
-              FOTO ASLI KAMERA
-            </span>
-          </div>
-
-          {/* After */}
-          <div 
-            className="slider-image-after"
-            style={{ 
-              clipPath: `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)`,
-              position: 'absolute',
-              inset: 0
-            }}
+          {/* Draggable comparison area */}
+          <div
+            ref={containerRef}
+            onMouseMove={handleMouseMove}
+            onTouchMove={handleTouchMove}
+            onMouseDown={() => setIsDragging(true)}
+            onTouchStart={() => setIsDragging(true)}
+            className="slider-container"
+            style={{ width: '100%', height: '100%', cursor: 'ew-resize', position: 'relative', background: '#0a0a0c' }}
           >
-            <img src={retouchedUrl} alt="AI retouched preview" style={{ pointerEvents: 'none' }} />
-            <span style={{ position: 'absolute', bottom: '16px', right: '16px', zIndex: 10, background: 'var(--primary-grad)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, color: 'white' }}>
-              HASIL RETOUCH AI
-            </span>
-          </div>
-
-          {/* Divider */}
-          <div className="slider-bar" style={{ left: `${sliderPos}%` }}>
-            <div className="slider-handle">
-              <Sparkles size={16} />
+            {/* Before */}
+            <div className="slider-image-before">
+              <img src={originalUrl} alt="Original unretouched shot" style={{ pointerEvents: 'none' }} />
+              <span style={{ position: 'absolute', bottom: '10px', left: '10px', zIndex: 10, background: 'rgba(0,0,0,0.6)', padding: '3px 7px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600 }}>
+                FOTO ASLI
+              </span>
             </div>
-          </div>
 
-          {/* Spinner */}
-          {loading && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface)', padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <RefreshCw className="upload-active" size={16} style={{ animation: 'spin 1.5s linear infinite' }} />
-                <span style={{ fontSize: '0.85rem' }}>Retouch AI...</span>
+            {/* After */}
+            <div
+              className="slider-image-after"
+              style={{
+                clipPath: `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)`,
+                position: 'absolute',
+                inset: 0
+              }}
+            >
+              <img src={retouchedUrl} alt="AI retouched preview" style={{ pointerEvents: 'none' }} />
+              <span style={{ position: 'absolute', bottom: '10px', right: '10px', zIndex: 10, background: 'var(--primary-grad)', padding: '3px 7px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, color: 'white' }}>
+                HASIL AI
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="slider-bar" style={{ left: `${sliderPos}%` }}>
+              <div className="slider-handle">
+                <Sparkles size={14} />
               </div>
             </div>
-          )}
+
+            {/* Spinner */}
+            {loading && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
+                  <span style={{ fontSize: '0.8rem' }}>Retouch AI...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Expand / Lightbox button */}
+          <button
+            onClick={() => setLightboxOpen(true)}
+            title="Lihat detail foto hasil retouch"
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              zIndex: 20,
+              background: 'rgba(0,0,0,0.55)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              padding: '5px 8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: 'white',
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              backdropFilter: 'blur(6px)',
+              transition: 'background 0.2s'
+            }}
+          >
+            <Maximize2 size={12} />
+            Lihat Detail
+          </button>
         </div>
       </div>
 
+      {/* ── LIGHTBOX MODAL ── */}
+      {lightboxOpen && (
+        <div
+          onClick={() => setLightboxOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            cursor: 'zoom-out',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setLightboxOpen(false)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'white',
+              zIndex: 1001,
+              transition: 'background 0.2s'
+            }}
+          >
+            <X size={18} />
+          </button>
+
+          {/* Label */}
+          <div style={{ position: 'absolute', top: '20px', left: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ZoomIn size={16} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Hasil Retouch AI — Klik di mana saja untuk tutup</span>
+          </div>
+
+          {/* Full image */}
+          <img
+            src={retouchedUrl}
+            alt="Full resolution AI retouched result"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '92vw',
+              maxHeight: '88vh',
+              objectFit: 'contain',
+              borderRadius: '10px',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+              cursor: 'default',
+              display: 'block'
+            }}
+          />
+        </div>
+      )}
+
       {/* Right Column: AI preset list, watermarks, face beautification controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '380px', flexShrink: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 100px)', paddingRight: '4px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '300px', flexShrink: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 100px)', paddingRight: '4px' }}>
         
         {/* Preset profile list */}
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -787,47 +909,106 @@ export const RetouchProfilesView: React.FC = () => {
 
           {/* Section: Text Customizer */}
           {(watermarkType === 'text' || watermarkType === 'both') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-              
-              {/* Text input */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Teks Label Watermark</label>
-                <input 
-                  type="text" 
-                  value={watermarkText} 
-                  onChange={(e) => setWatermarkText(e.target.value)} 
-                  className="glass-input" 
-                  style={{ fontSize: '0.8rem', padding: '8px' }} 
-                  placeholder="Ketik teks watermark..."
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '-4px' }}>
+                💡 Isi 3 baris teks dan pilih font masing-masing untuk banner overlay yang elegan.
+              </p>
+
+              {/* LINE 1 – Title (e.g. The Wedding of) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px', borderRadius: '8px', background: 'var(--btn-secondary-bg)', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Baris 1 — Judul</span>
+                <input
+                  type="text"
+                  value={watermarkTextLine1}
+                  onChange={(e) => setWatermarkTextLine1(e.target.value)}
+                  className="glass-input"
+                  style={{ fontSize: '0.8rem', padding: '7px 10px' }}
+                  placeholder="The Wedding of"
                 />
+                <select
+                  value={watermarkFontLine1}
+                  onChange={(e) => setWatermarkFontLine1(e.target.value)}
+                  className="glass-input"
+                  style={{ fontSize: '0.78rem', padding: '6px 8px', cursor: 'pointer' }}
+                >
+                  <optgroup label="Modern Sans-Serif">
+                    <option value="Outfit">Outfit (Sans)</option>
+                    <option value="Inter">Inter (Sans)</option>
+                    <option value="Montserrat">Montserrat (Sans)</option>
+                    <option value="Cinzel">Cinzel (Serif)</option>
+                    <option value="Playfair Display">Playfair Display (Serif)</option>
+                  </optgroup>
+                  <optgroup label="Script & Calligraphy">
+                    <option value="Sacramento">Sacramento (Script)</option>
+                    <option value="Great Vibes">Great Vibes (Calligraphy)</option>
+                    <option value="Alex Brush">Alex Brush (Brush)</option>
+                    <option value="Pacifico">Pacifico (Fun)</option>
+                  </optgroup>
+                </select>
               </div>
 
-              {/* Font selector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Pilihan Font</label>
-                <select
-                  value={watermarkFont}
-                  onChange={(e) => setWatermarkFont(e.target.value)}
+              {/* LINE 2 – Names (e.g. Bella & Thoyyib) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px', borderRadius: '8px', background: 'var(--btn-secondary-bg)', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Baris 2 — Nama Mempelai</span>
+                <input
+                  type="text"
+                  value={watermarkTextLine2}
+                  onChange={(e) => setWatermarkTextLine2(e.target.value)}
                   className="glass-input"
-                  style={{ fontSize: '0.8rem', padding: '8px', cursor: 'pointer', fontFamily: watermarkFont }}
+                  style={{ fontSize: '0.8rem', padding: '7px 10px' }}
+                  placeholder="Bella & Thoyyib"
+                />
+                <select
+                  value={watermarkFontLine2}
+                  onChange={(e) => setWatermarkFontLine2(e.target.value)}
+                  className="glass-input"
+                  style={{ fontSize: '0.78rem', padding: '6px 8px', cursor: 'pointer' }}
                 >
-                  {/* Modern Sans-Serif */}
-                  <optgroup label="Modern Sans-Serif" style={{ fontFamily: 'sans-serif' }}>
-                    <option value="Outfit" style={{ fontFamily: 'Outfit' }}>Outfit</option>
-                    <option value="Inter" style={{ fontFamily: 'Inter' }}>Inter</option>
-                    <option value="Montserrat" style={{ fontFamily: 'Montserrat' }}>Montserrat</option>
+                  <optgroup label="Script & Calligraphy">
+                    <option value="Great Vibes">Great Vibes (Calligraphy)</option>
+                    <option value="Sacramento">Sacramento (Script)</option>
+                    <option value="Alex Brush">Alex Brush (Brush)</option>
+                    <option value="Pacifico">Pacifico (Fun)</option>
                   </optgroup>
-                  {/* Elegant Serif */}
-                  <optgroup label="Elegant Serif" style={{ fontFamily: 'serif' }}>
-                    <option value="Playfair Display" style={{ fontFamily: 'Playfair Display' }}>Playfair Display</option>
-                    <option value="Cinzel" style={{ fontFamily: 'Cinzel' }}>Cinzel</option>
+                  <optgroup label="Modern Sans-Serif">
+                    <option value="Outfit">Outfit (Sans)</option>
+                    <option value="Inter">Inter (Sans)</option>
+                    <option value="Montserrat">Montserrat (Sans)</option>
+                    <option value="Cinzel">Cinzel (Serif)</option>
+                    <option value="Playfair Display">Playfair Display (Serif)</option>
                   </optgroup>
-                  {/* Elegant Cursive / Calligraphy */}
-                  <optgroup label="Calligraphy & Script" style={{ fontFamily: 'cursive' }}>
-                    <option value="Sacramento" style={{ fontFamily: 'Sacramento' }}>Sacramento (Script)</option>
-                    <option value="Great Vibes" style={{ fontFamily: 'Great Vibes' }}>Great Vibes (Calligraphy)</option>
-                    <option value="Alex Brush" style={{ fontFamily: 'Alex Brush' }}>Alex Brush (Brush)</option>
-                    <option value="Pacifico" style={{ fontFamily: 'Pacifico' }}>Pacifico (Fun)</option>
+                </select>
+              </div>
+
+              {/* LINE 3 – Date (e.g. 07 June 2026) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px', borderRadius: '8px', background: 'var(--btn-secondary-bg)', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(234, 179, 8, 0.9)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Baris 3 — Tanggal Acara</span>
+                <input
+                  type="text"
+                  value={watermarkTextLine3}
+                  onChange={(e) => setWatermarkTextLine3(e.target.value)}
+                  className="glass-input"
+                  style={{ fontSize: '0.8rem', padding: '7px 10px' }}
+                  placeholder="07 June 2026"
+                />
+                <select
+                  value={watermarkFontLine3}
+                  onChange={(e) => setWatermarkFontLine3(e.target.value)}
+                  className="glass-input"
+                  style={{ fontSize: '0.78rem', padding: '6px 8px', cursor: 'pointer' }}
+                >
+                  <optgroup label="Modern Sans-Serif">
+                    <option value="Outfit">Outfit (Sans)</option>
+                    <option value="Inter">Inter (Sans)</option>
+                    <option value="Montserrat">Montserrat (Sans)</option>
+                    <option value="Cinzel">Cinzel (Serif)</option>
+                    <option value="Playfair Display">Playfair Display (Serif)</option>
+                  </optgroup>
+                  <optgroup label="Script & Calligraphy">
+                    <option value="Sacramento">Sacramento (Script)</option>
+                    <option value="Great Vibes">Great Vibes (Calligraphy)</option>
+                    <option value="Alex Brush">Alex Brush (Brush)</option>
+                    <option value="Pacifico">Pacifico (Fun)</option>
                   </optgroup>
                 </select>
               </div>
@@ -835,7 +1016,7 @@ export const RetouchProfilesView: React.FC = () => {
               {/* Text size */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                  <span>Ukuran Font (PX)</span>
+                  <span>Ukuran Font Utama (Baris 2)</span>
                   <span>{watermarkSize}px</span>
                 </div>
                 <input 
