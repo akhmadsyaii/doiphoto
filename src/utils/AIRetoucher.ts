@@ -600,6 +600,225 @@ const drawFramePreset = (
       drawStar(width * 0.92, height - barH * 0.25, 4);
       break;
     }
+    case 'rose_gold_floral': {
+      // Rose Gold Floral: Thin rose gold borders with corner floral branch lines
+      const pad = Math.round(Math.min(width, height) * 0.035);
+      const roseGold = '#e0a899'; // Rose gold color representation
+      
+      ctx.strokeStyle = roseGold;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+
+      // Draw floral branches in the top-right and bottom-left corners
+      const drawFloralBranch = (x: number, y: number, scaleX: number, scaleY: number) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scaleX, scaleY);
+        ctx.strokeStyle = 'rgba(224, 168, 153, 0.75)';
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(20, -10, 40, -40);
+        ctx.stroke();
+
+        // draw small leaves
+        for (let i = 1; i <= 3; i++) {
+          const t = i / 4;
+          const lx = 40 * t;
+          const ly = -40 * t;
+          ctx.fillStyle = 'rgba(224, 168, 153, 0.3)';
+          ctx.beginPath();
+          ctx.ellipse(lx + 5, ly - 5, 6, 3, Math.PI / 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.restore();
+      };
+
+      // Top right
+      drawFloralBranch(width - pad, pad, 1, 1);
+      // Bottom left
+      drawFloralBranch(pad, height - pad, -1, -1);
+      break;
+    }
+    case 'vintage_paper': {
+      // Vintage Parchment: A warm cream background border all around with a distressed inner border.
+      const borderSize = Math.round(Math.min(width, height) * 0.05);
+      
+      // Cream paper background border
+      ctx.fillStyle = '#fbf0d9';
+      ctx.fillRect(0, 0, width, borderSize);
+      ctx.fillRect(0, 0, borderSize, height);
+      ctx.fillRect(width - borderSize, 0, borderSize, height);
+      ctx.fillRect(0, height - borderSize, width, borderSize);
+
+      // Distressed brown inner border
+      ctx.strokeStyle = '#854d0e';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(borderSize - 2, borderSize - 2, width - (borderSize - 2) * 2, height - (borderSize - 2) * 2);
+      
+      // Draw corner accents
+      ctx.fillStyle = '#854d0e';
+      const cornerSize = 8;
+      ctx.fillRect(borderSize - 5, borderSize - 5, cornerSize, cornerSize);
+      ctx.fillRect(width - borderSize - 3, borderSize - 5, cornerSize, cornerSize);
+      ctx.fillRect(borderSize - 5, height - borderSize - 3, cornerSize, cornerSize);
+      ctx.fillRect(width - borderSize - 3, height - borderSize - 3, cornerSize, cornerSize);
+      break;
+    }
+    case 'cyberpunk_grid': {
+      // Cyberpunk HUD: Electric blue corner brackets and targeting overlay lines.
+      const pad = Math.round(Math.min(width, height) * 0.04);
+      const neonBlue = '#06b6d4';
+      ctx.strokeStyle = neonBlue;
+      ctx.lineWidth = 2;
+
+      // Draw brackets
+      const len = 30;
+      // top-left
+      ctx.beginPath();
+      ctx.moveTo(pad + len, pad); ctx.lineTo(pad, pad); ctx.lineTo(pad, pad + len);
+      ctx.stroke();
+      // top-right
+      ctx.beginPath();
+      ctx.moveTo(width - pad - len, pad); ctx.lineTo(width - pad, pad); ctx.lineTo(width - pad, pad + len);
+      ctx.stroke();
+      // bottom-left
+      ctx.beginPath();
+      ctx.moveTo(pad + len, height - pad); ctx.lineTo(pad, height - pad); ctx.lineTo(pad, height - pad + len);
+      ctx.stroke();
+      // bottom-right
+      ctx.beginPath();
+      ctx.moveTo(width - pad - len, height - pad); ctx.lineTo(width - pad, height - pad); ctx.lineTo(width - pad, height - pad + len);
+      ctx.stroke();
+
+      // Technical crosshairs in the corners
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad + 10, pad + 10); ctx.lineTo(pad + 10, pad + 25);
+      ctx.moveTo(pad + 10, pad + 10); ctx.lineTo(pad + 25, pad + 10);
+      ctx.stroke();
+
+      ctx.fillStyle = neonBlue;
+      ctx.font = '8px monospace';
+      ctx.fillText('REC // SYSTEM ACTIVE', pad + 40, pad + 12);
+      break;
+    }
+    case 'cherry_blossom': {
+      // Cherry Blossom: petals falling from corners
+      const drawPetal = (cx: number, cy: number, rot: number, r: number) => {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        ctx.fillStyle = '#fbcfe8'; // soft pink
+        ctx.strokeStyle = '#f472b6'; // rose pink
+        ctx.lineWidth = 0.5;
+        
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r, r * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Leaf vein
+        ctx.beginPath();
+        ctx.moveTo(-r, 0);
+        ctx.lineTo(r, 0);
+        ctx.stroke();
+        ctx.restore();
+      };
+
+      // Corner petal groups
+      drawPetal(30, 40, Math.PI / 6, 8);
+      drawPetal(45, 30, Math.PI / 4, 6);
+      drawPetal(60, 50, -Math.PI / 12, 5);
+
+      drawPetal(width - 50, 45, Math.PI / 3, 7);
+      drawPetal(width - 35, 30, -Math.PI / 8, 9);
+
+      drawPetal(50, height - 40, -Math.PI / 6, 8);
+      drawPetal(width - 60, height - 50, Math.PI / 4, 6);
+      break;
+    }
+    case 'luxury_marble': {
+      // Luxury Marble: Dark graphite border with scattered golden veins.
+      const borderSize = Math.round(Math.min(width, height) * 0.045);
+      
+      // Graphite border
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, width, borderSize);
+      ctx.fillRect(0, 0, borderSize, height);
+      ctx.fillRect(width - borderSize, 0, borderSize, height);
+      ctx.fillRect(0, height - borderSize, width, borderSize);
+
+      // Gold veins
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // vein 1 top left
+      ctx.moveTo(0, borderSize * 0.5);
+      ctx.lineTo(borderSize * 3, borderSize * 0.2);
+      ctx.lineTo(borderSize * 4, borderSize * 0.8);
+      ctx.stroke();
+
+      // vein 2 bottom right
+      ctx.beginPath();
+      ctx.moveTo(width - borderSize * 3, height - borderSize * 0.8);
+      ctx.lineTo(width - borderSize * 1.5, height - borderSize * 0.2);
+      ctx.lineTo(width, height - borderSize * 0.5);
+      ctx.stroke();
+
+      // Inner gold frame line
+      ctx.strokeStyle = '#eab308';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(borderSize + 2, borderSize + 2, width - (borderSize + 2) * 2, height - (borderSize + 2) * 2);
+      break;
+    }
+    case 'christmas_holiday': {
+      // Christmas Holiday: Evergreen pine needles and bright red holly berries in corners.
+      const drawPineBranch = (x: number, y: number, rot: number) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.strokeStyle = '#065f46'; // dark green
+        ctx.lineWidth = 1.5;
+
+        // Stem
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(35, 0);
+        ctx.stroke();
+
+        // Needles
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 30; i += 3) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i - 4, 6);
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i - 4, -6);
+          ctx.stroke();
+        }
+
+        // Red berries
+        ctx.fillStyle = '#dc2626'; // bright red
+        ctx.beginPath();
+        ctx.arc(5, 3, 3, 0, Math.PI * 2);
+        ctx.arc(8, -2, 3.5, 0, Math.PI * 2);
+        ctx.arc(12, 2, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      };
+
+      const pad = 10;
+      drawPineBranch(pad, pad, Math.PI / 4);
+      drawPineBranch(width - pad, pad, (Math.PI * 3) / 4);
+      drawPineBranch(pad, height - pad, -Math.PI / 4);
+      drawPineBranch(width - pad, height - pad, -(Math.PI * 3) / 4);
+      break;
+    }
     default:
       break;
   }

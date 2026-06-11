@@ -15,6 +15,12 @@ const FRAME_PRESETS = [
   { id: 'neon_glow', name: 'Neon Glow', desc: 'Glow neon cyan & magenta berpendar', icon: '⚡' },
   { id: 'soft_vignette', name: 'Soft Vignette', desc: 'Efek vignette putih kabur romantis', icon: '☁️' },
   { id: 'silver_sparkles', name: 'Silver Sparkles', desc: 'Gradasi perak & bintang berkelip', icon: '✨' },
+  { id: 'rose_gold_floral', name: 'Rose Gold Floral', desc: 'Garis rose gold & sulur mawar manis', icon: '🌸' },
+  { id: 'vintage_paper', name: 'Vintage Parchment', desc: 'Tepi kertas usang & garis batas klasik', icon: '📜' },
+  { id: 'cyberpunk_grid', name: 'Cyberpunk HUD', desc: 'Elemen antarmuka digital futuristik', icon: '👾' },
+  { id: 'cherry_blossom', name: 'Sakura Spring', desc: 'Kelopak sakura berguguran di sudut', icon: '🏵️' },
+  { id: 'luxury_marble', name: 'Luxury Marble', desc: 'Marmer hitam dengan serat emas', icon: '🏛️' },
+  { id: 'christmas_holiday', name: 'Holiday Holly', desc: 'Daun cemara & buah holly merah meriah', icon: '🎄' },
   { id: 'custom', name: 'Unggah Kustom', desc: 'Gunakan file desain PNG Anda', icon: '📤' }
 ];
 
@@ -64,7 +70,7 @@ const PRESET_INFOS = [
 ];
 
 // High quality sample portrait for retouch comparisons
-const PREVIEW_SAMPLE = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop';
+const PREVIEW_SAMPLE = '/portrait_preview.png';
 
 export const RetouchProfilesView: React.FC = () => {
   const { 
