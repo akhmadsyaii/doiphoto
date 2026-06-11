@@ -342,7 +342,7 @@ export const CameraSimulator: React.FC = () => {
                   fontSize: '0.65rem',
                   border: 'none',
                   borderRadius: '4px',
-                  background: selectedCategory === c ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  background: selectedCategory === c ? 'var(--btn-secondary-bg)' : 'transparent',
                   color: selectedCategory === c ? 'var(--text-primary)' : 'var(--text-muted)',
                   cursor: 'pointer'
                 }}
@@ -390,7 +390,7 @@ export const CameraSimulator: React.FC = () => {
                   fontSize: '0.65rem',
                   border: 'none',
                   borderRadius: '4px',
-                  background: cameraBrand === b ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  background: cameraBrand === b ? 'var(--btn-secondary-bg)' : 'transparent',
                   color: cameraBrand === b ? 'var(--text-primary)' : 'var(--text-muted)',
                   cursor: 'pointer'
                 }}
@@ -578,7 +578,7 @@ export const CameraSimulator: React.FC = () => {
                 </div>
 
                 {/* Control bar */}
-                <div style={{ display: 'flex', height: '24px', background: 'rgba(0,0,0,0.7)', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', height: '24px', background: 'var(--bg-card)', borderTop: '1px solid var(--border-color)' }}>
                   
                   {/* Star local photo */}
                   <button
