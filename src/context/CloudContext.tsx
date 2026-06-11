@@ -7,9 +7,10 @@ export interface Album {
   name: string;
   createdAt: number;
   gdriveLink: string;
-  watermarkType: 'text' | 'image';
+  watermarkType: 'none' | 'text' | 'image' | 'both';
   watermarkText: string;
   watermarkImage: string | null;
+  watermarkFont?: string;
   activePreset: string;
   isAutoRetouchEnabled: boolean;
   reviewerMode: boolean;
@@ -105,10 +106,12 @@ interface CloudContextType {
   setWatermarkOpacity: (opacity: number) => void;
   watermarkSize: number;
   setWatermarkSize: (size: number) => void;
-  watermarkType: 'text' | 'image';
-  setWatermarkType: (type: 'text' | 'image') => void;
+  watermarkType: 'none' | 'text' | 'image' | 'both';
+  setWatermarkType: (type: 'none' | 'text' | 'image' | 'both') => void;
   watermarkImage: string | null;
   setWatermarkImage: (image: string | null) => void;
+  watermarkFont: string;
+  setWatermarkFont: (font: string) => void;
   guestSelfie: string | null;
   setGuestSelfie: (selfie: string | null) => void;
   isFacialSmoothingEnabled: boolean;
@@ -256,11 +259,12 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Advanced Features State
   const [uploadMode, setUploadMode] = useState<'auto' | 'starred' | 'manual'>('auto');
   const [reviewerMode, setReviewerModeState] = useState<boolean>(false);
-  const [watermarkText, setWatermarkTextState] = useState<string>('@doiphoto_production');
-  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(0.35);
+  const [watermarkText, setWatermarkTextState] = useState<string>('Do\'i picture');
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(0.8);
   const [watermarkSize, setWatermarkSize] = useState<number>(20);
-  const [watermarkType, setWatermarkTypeState] = useState<'text' | 'image'>('text');
+  const [watermarkType, setWatermarkTypeState] = useState<'none' | 'text' | 'image' | 'both'>('text');
   const [watermarkImage, setWatermarkImageState] = useState<string | null>(null);
+  const [watermarkFont, setWatermarkFontState] = useState<string>('Outfit');
   const [guestSelfie, setGuestSelfie] = useState<string | null>(null);
 
   // Multi-Album States
@@ -283,8 +287,9 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           createdAt: Date.now() - 86400000,
           gdriveLink: '',
           watermarkType: 'text',
-          watermarkText: '@doiphoto_production',
+          watermarkText: 'Do\'i picture',
           watermarkImage: null,
+          watermarkFont: 'Outfit',
           activePreset: 'wedding',
           isAutoRetouchEnabled: true,
           reviewerMode: false
@@ -402,7 +407,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     updateActiveAlbumProperty('gdriveLink', link);
   };
 
-  const setWatermarkType = (type: 'text' | 'image') => {
+  const setWatermarkType = (type: 'none' | 'text' | 'image' | 'both') => {
     setWatermarkTypeState(type);
     updateActiveAlbumProperty('watermarkType', type);
   };
@@ -410,6 +415,11 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setWatermarkImage = (image: string | null) => {
     setWatermarkImageState(image);
     updateActiveAlbumProperty('watermarkImage', image);
+  };
+
+  const setWatermarkFont = (font: string) => {
+    setWatermarkFontState(font);
+    updateActiveAlbumProperty('watermarkFont', font);
   };
 
   // Mock Authentication Functions
@@ -494,8 +504,9 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 size: watermarkSize,
                 smoothFace: isFacialSmoothingEnabled,
                 blurPlates: isPlateBlurringEnabled,
-                type: 'text',
-                image: null
+                type: watermarkType,
+                image: watermarkImage,
+                font: watermarkFont
               }
             );
             return {
@@ -558,8 +569,9 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setEventNameState(activeAlbum.name);
           setGDriveLinkState(activeAlbum.gdriveLink || '');
           setWatermarkTypeState(activeAlbum.watermarkType || 'text');
-          setWatermarkTextState(activeAlbum.watermarkText || '@doiphoto_production');
+          setWatermarkTextState(activeAlbum.watermarkText || 'Do\'i picture');
           setWatermarkImageState(activeAlbum.watermarkImage || null);
+          setWatermarkFontState(activeAlbum.watermarkFont || 'Outfit');
           setActivePresetState(activeAlbum.activePreset || 'wedding');
           setIsAutoRetouchEnabledState(activeAlbum.isAutoRetouchEnabled !== undefined ? activeAlbum.isAutoRetouchEnabled : true);
           setReviewerModeState(activeAlbum.reviewerMode !== undefined ? activeAlbum.reviewerMode : false);
@@ -663,7 +675,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           smoothFace: isFacialSmoothingEnabled,
           blurPlates: isPlateBlurringEnabled,
           type: watermarkType,
-          image: watermarkImage
+          image: watermarkImage,
+          font: watermarkFont
         },
         mSettings
       );
@@ -735,7 +748,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTeamStreamActive, activePreset, watermarkText, watermarkOpacity, watermarkSize, isFacialSmoothingEnabled, isPlateBlurringEnabled, reviewerMode]);
+  }, [isTeamStreamActive, activePreset, watermarkText, watermarkOpacity, watermarkSize, watermarkType, watermarkImage, watermarkFont, isFacialSmoothingEnabled, isPlateBlurringEnabled, reviewerMode]);
 
   const updatePhotoPreset = async (id: string, presetName: string) => {
     setPhotos(prev =>
@@ -772,7 +785,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           smoothFace: isFacialSmoothingEnabled,
           blurPlates: isPlateBlurringEnabled,
           type: watermarkType,
-          image: watermarkImage
+          image: watermarkImage,
+          font: watermarkFont
         },
         mSettings
       );
@@ -830,8 +844,9 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: Date.now(),
       gdriveLink: '',
       watermarkType: 'text',
-      watermarkText: '@doiphoto_production',
+      watermarkText: 'Do\'i picture',
       watermarkImage: null,
+      watermarkFont: 'Outfit',
       activePreset: 'wedding',
       isAutoRetouchEnabled: true,
       reviewerMode: false
@@ -912,6 +927,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setWatermarkType,
         watermarkImage,
         setWatermarkImage,
+        watermarkFont,
+        setWatermarkFont,
         guestSelfie,
         setGuestSelfie,
         isFacialSmoothingEnabled,

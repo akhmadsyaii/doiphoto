@@ -9,8 +9,9 @@ interface WatermarkOptions {
   size: number;
   smoothFace?: boolean;
   blurPlates?: boolean;
-  type?: 'text' | 'image';
+  type?: 'none' | 'text' | 'image' | 'both';
   image?: string | null;
+  font?: string;
 }
 
 export const applyAIRetouch = (
@@ -126,8 +127,34 @@ export const applyAIRetouch = (
           ctx.restore();
         }
 
-        // 3. Batch Watermarking overlay
-        if (watermarkOptions && watermarkOptions.type === 'image' && watermarkOptions.image) {
+        // 3. Batch Watermarking overlay (frame + text layers)
+        const drawTextWatermark = () => {
+          if (watermarkOptions && watermarkOptions.text && (watermarkOptions.type === 'text' || watermarkOptions.type === 'both')) {
+            ctx.save();
+            const wText = watermarkOptions.text;
+            const wSize = watermarkOptions.size || 20;
+            const wOpacity = watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.8;
+            const wFont = watermarkOptions.font || 'Outfit';
+            
+            // Adjust styling based on script font characteristics
+            const isScriptFont = ['Sacramento', 'Great Vibes', 'Alex Brush', 'Pacifico'].includes(wFont);
+            ctx.font = `${isScriptFont ? '' : 'bold '}${wSize}px '${wFont}', sans-serif`;
+            ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            
+            // Drop shadow for high visibility contrast in bright/dark areas
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            
+            ctx.fillText(wText, width - 24, height - 24);
+            ctx.restore();
+          }
+        };
+
+        if (watermarkOptions && (watermarkOptions.type === 'image' || watermarkOptions.type === 'both') && watermarkOptions.image) {
           const watermarkImg = new Image();
           watermarkImg.src = watermarkOptions.image;
           watermarkImg.onload = () => {
@@ -139,37 +166,21 @@ export const applyAIRetouch = (
             } catch (err) {
               console.error('Error drawing image watermark overlay:', err);
             }
+            drawTextWatermark();
             const output = canvas.toDataURL('image/jpeg', 0.85);
             resolve(output);
           };
           watermarkImg.onerror = () => {
             console.error('Error loading image watermark template');
+            drawTextWatermark();
             const output = canvas.toDataURL('image/jpeg', 0.85);
             resolve(output);
           };
           return;
         }
 
-        if (watermarkOptions && watermarkOptions.text) {
-          ctx.save();
-          const wText = watermarkOptions.text;
-          const wSize = watermarkOptions.size || 20;
-          const wOpacity = watermarkOptions.opacity !== undefined ? watermarkOptions.opacity : 0.35;
-          
-          ctx.font = `bold ${wSize}px 'Outfit', sans-serif`;
-          ctx.fillStyle = `rgba(255, 255, 255, ${wOpacity})`;
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          
-          // Drop shadow for high visibility contrast in bright white photos
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 1;
-          
-          ctx.fillText(wText, width - 24, height - 24);
-          ctx.restore();
-        }
+        // Draw text overlay if image overlay is not active
+        drawTextWatermark();
 
         // Export as base64 JPEG
         const output = canvas.toDataURL('image/jpeg', 0.85);

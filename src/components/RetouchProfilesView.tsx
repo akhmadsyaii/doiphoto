@@ -68,6 +68,8 @@ export const RetouchProfilesView: React.FC = () => {
     setWatermarkType,
     watermarkImage,
     setWatermarkImage,
+    watermarkFont,
+    setWatermarkFont,
     isFacialSmoothingEnabled,
     setIsFacialSmoothingEnabled,
     isPlateBlurringEnabled,
@@ -136,7 +138,8 @@ export const RetouchProfilesView: React.FC = () => {
           smoothFace: isFacialSmoothingEnabled,
           blurPlates: isPlateBlurringEnabled,
           type: watermarkType,
-          image: watermarkImage
+          image: watermarkImage,
+          font: watermarkFont
         }, mSettings);
         setRetouchedUrl(retouched);
       } catch (err) {
@@ -154,6 +157,7 @@ export const RetouchProfilesView: React.FC = () => {
     watermarkSize, 
     watermarkType,
     watermarkImage,
+    watermarkFont,
     isFacialSmoothingEnabled, 
     isPlateBlurringEnabled,
     manualBrightness,
@@ -557,61 +561,184 @@ export const RetouchProfilesView: React.FC = () => {
             <Type size={16} className="text-gradient-cyan" /> Pengaturan Watermark Event
           </h3>
 
-          {/* Watermark Mode Toggle */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Tipe Watermark / Bingkai</label>
-            <div style={{ display: 'flex', gap: '6px', background: 'var(--btn-secondary-bg)', padding: '3px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-              <button
-                type="button"
-                onClick={() => setWatermarkType('text')}
-                style={{
-                  flex: 1,
-                  padding: '5px',
-                  fontSize: '0.75rem',
-                  border: 'none',
-                  borderRadius: '4px',
-                  background: watermarkType === 'text' ? 'var(--primary-grad)' : 'transparent',
-                  color: watermarkType === 'text' ? '#fff' : 'var(--text-secondary)',
-                  cursor: 'pointer'
+          {/* Watermark Layer Toggles */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Layer Aktif</label>
+            
+            {/* Bingkai Switch */}
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '10px 14px', 
+              borderRadius: '8px', 
+              background: 'var(--btn-secondary-bg)', 
+              border: '1px solid var(--border-color)', 
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}>
+              <span style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 500 }}>🖼️ Bingkai Overlay (PNG)</span>
+              <input 
+                type="checkbox" 
+                checked={watermarkType === 'image' || watermarkType === 'both'} 
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  if (checked) {
+                    setWatermarkType(watermarkType === 'text' || watermarkType === 'both' ? 'both' : 'image');
+                  } else {
+                    setWatermarkType(watermarkType === 'text' || watermarkType === 'both' ? 'text' : 'none');
+                  }
                 }}
-              >
-                Teks Sederhana
-              </button>
-              <button
-                type="button"
-                onClick={() => setWatermarkType('image')}
-                style={{
-                  flex: 1,
-                  padding: '5px',
-                  fontSize: '0.75rem',
-                  border: 'none',
-                  borderRadius: '4px',
-                  background: watermarkType === 'image' ? 'var(--primary-grad)' : 'transparent',
-                  color: watermarkType === 'image' ? '#fff' : 'var(--text-secondary)',
-                  cursor: 'pointer'
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+            </label>
+
+            {/* Teks Switch */}
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '10px 14px', 
+              borderRadius: '8px', 
+              background: 'var(--btn-secondary-bg)', 
+              border: '1px solid var(--border-color)', 
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}>
+              <span style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 500 }}>✍️ Watermark Teks</span>
+              <input 
+                type="checkbox" 
+                checked={watermarkType === 'text' || watermarkType === 'both'} 
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  if (checked) {
+                    setWatermarkType(watermarkType === 'image' || watermarkType === 'both' ? 'both' : 'text');
+                  } else {
+                    setWatermarkType(watermarkType === 'image' || watermarkType === 'both' ? 'image' : 'none');
+                  }
                 }}
-              >
-                Bingkai Template
-              </button>
-            </div>
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+            </label>
           </div>
 
-          {watermarkType === 'text' ? (
-            <>
-              {/* Watermark text */}
+          {/* Section: Bingkai Upload */}
+          {(watermarkType === 'image' || watermarkType === 'both') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>File Bingkai (PNG Transparan disarankan)</label>
+              
+              {watermarkImage ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ 
+                    height: '100px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border-color)', 
+                    background: 'var(--bg-overlay)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden' 
+                  }}>
+                    <img src={watermarkImage} alt="Watermark template thumbnail" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWatermarkImage(null)}
+                    className="btn btn-danger"
+                    style={{ padding: '6px', fontSize: '0.75rem', width: '100%' }}
+                  >
+                    Hapus Bingkai
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => document.getElementById('frame-file-uploader')?.click()}
+                  style={{
+                    height: '80px',
+                    borderRadius: '8px',
+                    border: '1px dashed var(--border-color)',
+                    background: 'var(--btn-secondary-bg)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    gap: '4px',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  <span>Klik untuk pilih file PNG/JPG</span>
+                  <input
+                    type="file"
+                    id="frame-file-uploader"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setWatermarkImage(event.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section: Text Customizer */}
+          {(watermarkType === 'text' || watermarkType === 'both') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              
+              {/* Text input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Teks Label Watermark</label>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Teks Label Watermark</label>
                 <input 
                   type="text" 
                   value={watermarkText} 
                   onChange={(e) => setWatermarkText(e.target.value)} 
                   className="glass-input" 
                   style={{ fontSize: '0.8rem', padding: '8px' }} 
-                  placeholder="@yourname_production"
+                  placeholder="Ketik teks watermark..."
                 />
               </div>
 
-              {/* Watermark Size */}
+              {/* Font selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Pilihan Font</label>
+                <select
+                  value={watermarkFont}
+                  onChange={(e) => setWatermarkFont(e.target.value)}
+                  className="glass-input"
+                  style={{ fontSize: '0.8rem', padding: '8px', cursor: 'pointer', fontFamily: watermarkFont }}
+                >
+                  {/* Modern Sans-Serif */}
+                  <optgroup label="Modern Sans-Serif" style={{ fontFamily: 'sans-serif' }}>
+                    <option value="Outfit" style={{ fontFamily: 'Outfit' }}>Outfit</option>
+                    <option value="Inter" style={{ fontFamily: 'Inter' }}>Inter</option>
+                    <option value="Montserrat" style={{ fontFamily: 'Montserrat' }}>Montserrat</option>
+                  </optgroup>
+                  {/* Elegant Serif */}
+                  <optgroup label="Elegant Serif" style={{ fontFamily: 'serif' }}>
+                    <option value="Playfair Display" style={{ fontFamily: 'Playfair Display' }}>Playfair Display</option>
+                    <option value="Cinzel" style={{ fontFamily: 'Cinzel' }}>Cinzel</option>
+                  </optgroup>
+                  {/* Elegant Cursive / Calligraphy */}
+                  <optgroup label="Calligraphy & Script" style={{ fontFamily: 'cursive' }}>
+                    <option value="Sacramento" style={{ fontFamily: 'Sacramento' }}>Sacramento (Script)</option>
+                    <option value="Great Vibes" style={{ fontFamily: 'Great Vibes' }}>Great Vibes (Calligraphy)</option>
+                    <option value="Alex Brush" style={{ fontFamily: 'Alex Brush' }}>Alex Brush (Brush)</option>
+                    <option value="Pacifico" style={{ fontFamily: 'Pacifico' }}>Pacifico (Fun)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Text size */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                   <span>Ukuran Font (PX)</span>
@@ -620,101 +747,50 @@ export const RetouchProfilesView: React.FC = () => {
                 <input 
                   type="range" 
                   min="12" 
-                  max="36" 
+                  max="48" 
                   step="1"
                   value={watermarkSize} 
                   onChange={(e) => setWatermarkSize(parseInt(e.target.value))} 
                   style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
               </div>
-            </>
-          ) : (
-            <>
-              {/* Watermark image upload */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>File Bingkai (PNG Transparan disarankan)</label>
-                
-                {watermarkImage ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ 
-                      height: '100px', 
-                      borderRadius: '8px', 
-                      border: '1px solid var(--border-color)', 
-                      background: 'var(--bg-overlay)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      position: 'relative',
-                      overflow: 'hidden' 
-                    }}>
-                      <img src={watermarkImage} alt="Watermark template thumbnail" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setWatermarkImage(null)}
-                      className="btn btn-danger"
-                      style={{ padding: '6px', fontSize: '0.75rem', width: '100%' }}
-                    >
-                      Hapus Bingkai
-                    </button>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => document.getElementById('frame-file-uploader')?.click()}
-                    style={{
-                      height: '80px',
-                      borderRadius: '8px',
-                      border: '1px dashed var(--border-color)',
-                      background: 'var(--btn-secondary-bg)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      gap: '4px',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.7rem'
-                    }}
-                  >
-                    <span>Klik untuk pilih file PNG/JPG</span>
-                    <input
-                      type="file"
-                      id="frame-file-uploader"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            setWatermarkImage(event.target?.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      style={{ display: 'none' }}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
+            </div>
+          )}
+
+          {/* No overlays indicator */}
+          {watermarkType === 'none' && (
+            <div style={{ 
+              background: 'rgba(255, 255, 255, 0.02)', 
+              border: '1px dashed var(--border-color)', 
+              borderRadius: '8px', 
+              padding: '12px', 
+              fontSize: '0.7rem', 
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              lineHeight: 1.4
+            }}>
+              ✨ Semua layer overlay dinonaktifkan. Foto akan diekspor bersih tanpa bingkai atau watermark teks.
+            </div>
           )}
 
           {/* Watermark opacity */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-              <span>Opasitas Bingkai / Watermark</span>
-              <span>{Math.round(watermarkOpacity * 100)}%</span>
+          {watermarkType !== 'none' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                <span>Opasitas Layer Terpilih</span>
+                <span>{Math.round(watermarkOpacity * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0.1" 
+                max="1" 
+                step="0.05"
+                value={watermarkOpacity} 
+                onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))} 
+                style={{ accentColor: 'var(--secondary)', cursor: 'pointer' }}
+              />
             </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="1" 
-              step="0.05"
-              value={watermarkOpacity} 
-              onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))} 
-              style={{ accentColor: 'var(--secondary)', cursor: 'pointer' }}
-            />
-          </div>
+          )}
         </div>
 
         {/* AI Advanced Feature Toggles */}
