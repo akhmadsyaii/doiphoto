@@ -190,10 +190,12 @@ export const WebUSBConnector: React.FC = () => {
               <HelpCircle size={14} />
               Panduan Penyetelan untuk Kamera Fisik:
             </h4>
-            <ul style={{ paddingLeft: '18px', fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <li><strong>Sony:</strong> Atur mode Koneksi USB ke "PC Remote" or "MTP" di menu penyetelan.</li>
+            <ul style={{ paddingLeft: '18px', fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li><strong>Sony:</strong> Atur mode Koneksi USB ke "PC Remote" atau "MTP" di menu penyetelan.</li>
               <li><strong>Canon / Nikon:</strong> Hubungkan kamera dan atur USB ke mass storage / PTP. Nonaktifkan "Smartphone Control" jika aktif.</li>
-              <li>Gunakan kabel USB-C/OTG berkualitas tinggi dari kamera ke komputer/telepon.</li>
+              <li><strong>Kabel & OTG:</strong> Gunakan kabel USB-C/OTG berkualitas tinggi dari kamera ke komputer/telepon.</li>
+              <li><strong>Pengguna Android:</strong> Didukung penuh menggunakan Google Chrome. Cukup sambungkan kabel OTG dan izinkan akses saat diminta.</li>
+              <li><strong>Pengguna iOS (iPhone):</strong> Apple membatasi WebUSB. Silakan transfer foto ke Galeri HP menggunakan aplikasi Wi-Fi bawaan kamera atau SD Card Reader, lalu pilih menu <strong>Upload Foto</strong>.</li>
             </ul>
           </div>
         </div>
