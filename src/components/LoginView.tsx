@@ -18,15 +18,9 @@ export const LoginView: React.FC = () => {
       const success = login(email, password);
       setIsLoading(false);
       if (!success) {
-        setError('Email atau kata sandi salah. Silakan gunakan kredensial demo di bawah.');
+        setError('Email atau kata sandi salah.');
       }
     }, 800);
-  };
-
-  const handleQuickFill = () => {
-    setEmail('admin@doipicture.com');
-    setPassword('admin123');
-    setError(null);
   };
 
   return (
@@ -66,7 +60,7 @@ export const LoginView: React.FC = () => {
       }} />
 
       {/* Main Glass Box */}
-      <div 
+      <div
         className="glass-panel login-panel"
         style={{
           width: '100%',
@@ -81,13 +75,13 @@ export const LoginView: React.FC = () => {
       >
         {/* Logo and Brand */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', textAlign: 'center' }}>
-          <div style={{ 
-            background: 'var(--primary-grad)', 
-            width: '60px', 
-            height: '60px', 
-            borderRadius: '16px', 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            background: 'var(--primary-grad)',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 8px 24px var(--primary-glow)',
             marginBottom: '4px'
@@ -131,12 +125,12 @@ export const LoginView: React.FC = () => {
               <Mail size={12} />
               Alamat Email
             </label>
-            <input 
+            <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="glass-input"
-              placeholder="contoh: admin@doipicture.com"
+              placeholder="admin@doipicture.com"
               required
               disabled={isLoading}
               style={{ width: '100%' }}
@@ -149,7 +143,7 @@ export const LoginView: React.FC = () => {
               <Lock size={12} />
               Kata Sandi
             </label>
-            <input 
+            <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -162,16 +156,16 @@ export const LoginView: React.FC = () => {
           </div>
 
           {/* Sign in Button */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn-primary"
             disabled={isLoading}
-            style={{ 
-              width: '100%', 
-              marginTop: '8px', 
+            style={{
+              width: '100%',
+              marginTop: '8px',
               padding: '12px',
-              display: 'flex', 
-              alignItems: 'center', 
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
               opacity: isLoading ? 0.8 : 1
@@ -197,46 +191,9 @@ export const LoginView: React.FC = () => {
             )}
           </button>
         </form>
-
-        {/* Demo Credentials Box */}
-        <div 
-          className="glass-card" 
-          style={{ 
-            padding: '16px', 
-            background: 'rgba(255, 255, 255, 0.02)', 
-            border: '1px dashed rgba(255, 255, 255, 0.1)',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}
-        >
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            Kredensial Mode Demo
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem' }}>
-            <div>Email: <code style={{ color: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>admin@doipicture.com</code></div>
-            <div>Password: <code style={{ color: 'var(--primary)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>admin123</code></div>
-          </div>
-          <button
-            type="button"
-            onClick={handleQuickFill}
-            className="btn btn-secondary"
-            style={{
-              padding: '6px 12px',
-              fontSize: '0.75rem',
-              alignSelf: 'center',
-              background: 'rgba(139, 92, 246, 0.1)',
-              borderColor: 'rgba(139, 92, 246, 0.2)',
-              color: 'var(--primary)'
-            }}
-          >
-            Isi Kredensial Otomatis
-          </button>
-        </div>
       </div>
-      
-      {/* Dynamic inline spinner animation for fallback */}
+
+      {/* Dynamic inline spinner animation */}
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }

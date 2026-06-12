@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCloud } from '../context/CloudContext';
 import QRCode from 'qrcode';
 import { X, Copy, Check, Download, Users, ArrowUpRight, Share2 } from 'lucide-react';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await copyToClipboard(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {

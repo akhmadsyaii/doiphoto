@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useCloud, type Photo } from '../context/CloudContext';
-import { 
-  Download, 
-  Share2, 
-  ImageIcon, 
+import {
+  Download,
+  Share2,
+  ImageIcon,
   Info,
   Eye,
   X,
@@ -16,6 +16,7 @@ import {
   Star,
   ExternalLink
 } from 'lucide-react';
+import { copyToClipboard } from '../lib/clipboard';
 
 export const GuestGalleryView: React.FC = () => {
   const { eventName, photos, viewingPhoto, setViewingPhoto, gdriveLink } = useCloud();
@@ -72,7 +73,7 @@ export const GuestGalleryView: React.FC = () => {
 
   const handleCopyGalleryLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await copyToClipboard(window.location.href);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (e) {
