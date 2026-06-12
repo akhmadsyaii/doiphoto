@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCloud, type Photo } from '../context/CloudContext';
 import {
   Download,
   Share2,
-  ImageIcon,
   Info,
   Eye,
   X,
@@ -14,7 +13,10 @@ import {
   Search,
   CheckCircle2,
   Star,
-  ExternalLink
+  ExternalLink,
+  Play,
+  Pause,
+  Grid3x3
 } from 'lucide-react';
 import { copyToClipboard } from '../lib/clipboard';
 
@@ -22,6 +24,18 @@ export const GuestGalleryView: React.FC = () => {
   const { eventName, photos, viewingPhoto, setViewingPhoto, gdriveLink } = useCloud();
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Slideshow state
+  const [slideMode, setSlideMode] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [slidePlaying, setSlidePlaying] = useState(true);
+
+  // Loading simulation
+  useEffect(() => {
+    const t = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   // Advanced features state
   const [selectedCat, setSelectedCat] = useState<'All' | 'Akad' | 'Resepsi' | 'Photobooth'>('All');
@@ -51,6 +65,20 @@ export const GuestGalleryView: React.FC = () => {
   };
 
   const filteredPhotos = getFilteredPhotos();
+
+  // Auto-slideshow
+  useEffect(() => {
+    if (!slideMode || !slidePlaying || filteredPhotos.length === 0) return;
+    const interval = setInterval(() => {
+      setSlideIndex(prev => (prev + 1) % filteredPhotos.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [slideMode, slidePlaying, filteredPhotos.length]);
+
+  // Reset slide index when switching mode
+  useEffect(() => {
+    setSlideIndex(0);
+  }, [slideMode]);
 
   // Staggered download of filtered photos
   const handleDownloadAll = () => {
@@ -253,6 +281,17 @@ export const GuestGalleryView: React.FC = () => {
             <Share2 size={16} />
             {copiedLink ? 'Link Disalin!' : 'Bagikan Galeri'}
           </button>
+
+          {filteredPhotos.length > 0 && (
+            <button 
+              onClick={() => setSlideMode(!slideMode)} 
+              className="btn btn-accent"
+              style={{ border: slideMode ? '1px solid rgba(139,92,246,0.4)' : '1px solid var(--border-color)' }}
+            >
+              {slideMode ? <Grid3x3 size={16} /> : <Play size={16} />}
+              {slideMode ? 'Grid View' : 'Slideshow'}
+            </button>
+          )}
         </div>
 
         {/* Warning alerts */}
@@ -319,72 +358,145 @@ export const GuestGalleryView: React.FC = () => {
         </div>
       )}
 
-      {/* Masonry Grid */}
-      {filteredPhotos.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', color: 'var(--text-muted)' }}>
-          <ImageIcon size={64} strokeWidth={1} />
-          <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>Tidak ada foto yang cocok dengan filter Anda.</p>
-          <p style={{ fontSize: '0.75rem', textAlign: 'center', maxWidth: '300px' }}>
-            Coba pilih kategori yang berbeda atau hapus filter pencarian wajah jika sedang aktif.
-          </p>
+      {/* Slideshow View */}
+      {slideMode && filteredPhotos.length > 0 ? (
+        <div className="glass-panel" style={{ 
+          padding: '12px', 
+          position: 'relative',
+          minHeight: '500px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div className="slideshow-container" style={{ flex: 1, minHeight: '400px', borderRadius: '10px', overflow: 'hidden', background: '#040406' }}>
+            {filteredPhotos.map((photo, idx) => (
+              <img
+                key={photo.id}
+                src={photo.url}
+                alt={photo.name}
+                className={`slideshow-image ${idx === slideIndex ? 'active' : ''}`}
+                onClick={() => setViewingPhoto(photo)}
+                style={{ cursor: 'pointer' }}
+              />
+            ))}
+          </div>
+          <div className="slideshow-controls">
+            <button
+              onClick={() => setSlidePlaying(!slidePlaying)}
+              className="btn btn-secondary"
+              style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', border: 'none' }}
+            >
+              {slidePlaying ? <Pause size={14} /> : <Play size={14} />}
+            </button>
+            {filteredPhotos.length <= 20 ? (
+              filteredPhotos.map((photo, idx) => (
+                <button
+                  key={photo.id}
+                  className={`slideshow-dot ${idx === slideIndex ? 'active' : ''}`}
+                  onClick={() => setSlideIndex(idx)}
+                />
+              ))
+            ) : null}
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', marginLeft: '4px' }}>
+              {slideIndex + 1}/{filteredPhotos.length}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Masonry Grid or Empty State */}
+      {!slideMode && (filteredPhotos.length === 0 ? (
+        <div className="empty-state-premium">
+          <div className="empty-state-icon">
+            <Camera size={36} strokeWidth={1.2} style={{ color: 'var(--primary)' }} />
+          </div>
+          {isLoading ? (
+            <>
+              <div className="skeleton skeleton-lg" style={{ width: '200px' }} />
+              <div className="skeleton skeleton-sm" style={{ width: '280px' }} />
+            </>
+          ) : (
+            <>
+              <div className="empty-state-title">Belum Ada Foto</div>
+              <div className="empty-state-desc">
+                {faceFilterActive 
+                  ? 'Tidak ditemukan foto dengan wajah Anda. Coba upload selfie lain atau hapus filter.'
+                  : 'Foto yang diambil fotografer akan muncul di sini secara real-time. Tunggu momen pertama!'}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="masonry-grid">
-          {filteredPhotos.map((photo) => (
-            <div 
-              key={photo.id} 
-              className="masonry-item" 
-              onClick={() => setViewingPhoto(photo)}
-              style={{ cursor: 'pointer' }}
-            >
-              <img src={photo.url} alt={photo.name} loading="lazy" />
-              
-              {/* Star overlay indicator */}
-              {photo.isStarred && (
-                <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 5 }}>
-                  <span className="badge badge-amber" style={{ padding: '3px' }}><Star size={10} fill="currentColor" /></span>
-                </div>
-              )}
-
-              {/* Category label */}
-              <span className="badge badge-cyan" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 5, fontSize: '0.55rem' }}>
-                {photo.category}
-              </span>
-
-              {/* Hover Overlay */}
-              <div className="masonry-item-overlay">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <div style={{ color: 'white' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                      {photo.name}
-                    </p>
-                    <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                      #{photo.shutterCount}
-                    </span>
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="masonry-item" style={{ cursor: 'default' }}>
+                <div className="skeleton skeleton-thumb" />
+              </div>
+            ))
+          ) : (
+            filteredPhotos.map((photo) => (
+              <div 
+                key={photo.id} 
+                className="masonry-item glass-card" 
+                onClick={() => setViewingPhoto(photo)}
+              >
+                <img src={photo.url} alt={photo.name} loading="lazy" />
+                
+                {/* Watermark overlay */}
+                <div className="watermark-overlay">
+                  <div className="watermark-text">
+                    <Camera size={10} />
+                    do'ipicture
                   </div>
-                  
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setViewingPhoto(photo); }}
-                      className="btn btn-secondary" 
-                      style={{ padding: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff' }}
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDownloadSingle(photo); }}
-                      className="btn btn-secondary" 
-                      style={{ padding: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff' }}
-                    >
-                      <Download size={14} />
-                    </button>
+                </div>
+
+                {/* Star overlay indicator */}
+                {photo.isStarred && (
+                  <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 5 }}>
+                    <span className="badge badge-amber" style={{ padding: '3px' }}><Star size={10} fill="currentColor" /></span>
+                  </div>
+                )}
+
+                {/* Category label */}
+                <span className="badge badge-cyan" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 5, fontSize: '0.55rem' }}>
+                  {photo.category}
+                </span>
+
+                {/* Hover Overlay */}
+                <div className="masonry-item-overlay">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div style={{ color: 'white' }}>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                        {photo.name}
+                      </p>
+                      <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                        #{photo.shutterCount}
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setViewingPhoto(photo); }}
+                        className="btn btn-secondary" 
+                        style={{ padding: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff' }}
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDownloadSingle(photo); }}
+                        className="btn btn-secondary" 
+                        style={{ padding: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff' }}
+                      >
+                        <Download size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-      )}
+      ))}
 
       {/* AI Face search dialog modal */}
       {isFaceSearchOpen && (

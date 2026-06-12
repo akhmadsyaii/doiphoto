@@ -6,6 +6,7 @@ import { RetouchProfilesView } from './components/RetouchProfilesView';
 import { GuestGalleryView } from './components/GuestGalleryView';
 import { LoginView } from './components/LoginView';
 import { AlbumSelectionView } from './components/AlbumSelectionView';
+import { SplashScreen } from './components/SplashScreen';
 import { Menu } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -16,7 +17,6 @@ const AppContent: React.FC = () => {
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Simple query-param routing to support guest view and admin view
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view');
@@ -32,54 +32,40 @@ const AppContent: React.FC = () => {
     }
   }, [setEventName, selectAlbum]);
 
-  // Render Guest view (always bypasses authentication)
   if (isGuestView) {
     return (
-      <div style={{ minHeight: '100dvh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
-        {/* Simple navigation to go back to admin panel (convenient for local debugging) */}
-        <div style={{ 
-          background: 'rgba(0, 0, 0, 0.3)', 
-          borderBottom: '1px solid var(--border-color)', 
-          padding: '10px 16px', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center' 
-        }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Demo Live Portal Tamu do'ipicture
+      <div className="page-enter" style={{ minHeight: '100dvh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
+        <div className="premium-gallery-header" style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+            ✦ Galeri Tamu — do'ipicture
           </span>
-          <a 
-            href={window.location.origin} 
-            style={{ 
-              fontSize: '0.75rem', 
-              color: 'var(--primary)', 
-              textDecoration: 'none', 
-              fontWeight: 600 
+          <a
+            href={window.location.origin}
+            style={{
+              fontSize: '0.75rem',
+              color: 'var(--primary)',
+              textDecoration: 'none',
+              fontWeight: 600
             }}
           >
-            ← Kembali ke Workstation Fotografer
+            ← Workstation
           </a>
         </div>
-        
         <GuestGalleryView />
       </div>
     );
   }
 
-  // Force authentication for the Photographer Desk / Workstation
   if (!isLoggedIn) {
-    return <LoginView />;
+    return <div className="page-enter"><LoginView /></div>;
   }
 
-  // Gate check: If logged in but no active album is selected, render Album Selection View
   if (!activeAlbumId) {
-    return <AlbumSelectionView />;
+    return <div className="page-enter"><AlbumSelectionView /></div>;
   }
 
-  // Render Photographer admin workstation
   return (
-    <div className="app-container">
-      {/* Mobile top bar */}
+    <div className="app-container page-enter">
       <div className="sidebar-mobile-toggle" style={{
         position: 'sticky',
         top: 0,
@@ -115,9 +101,21 @@ const AppContent: React.FC = () => {
 };
 
 function App() {
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem('doiphoto_splash_shown');
+  });
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+    sessionStorage.setItem('doiphoto_splash_shown', 'true');
+  };
+
   return (
     <CloudProvider>
-      <AppContent />
+      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+      <div style={{ opacity: showSplash ? 0 : 1, transition: 'opacity 0.5s ease' }}>
+        <AppContent />
+      </div>
     </CloudProvider>
   );
 }
