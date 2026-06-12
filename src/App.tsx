@@ -35,21 +35,10 @@ const AppContent: React.FC = () => {
   if (isGuestView) {
     return (
       <div className="page-enter" style={{ minHeight: '100dvh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
-        <div className="premium-gallery-header" style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-            ✦ Galeri Tamu — do'ipicture
+        <div className="premium-gallery-header" style={{ padding: '10px 16px', textAlign: 'center' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '0.02em' }}>
+            do'i<span className="text-gradient">picture</span> ✦ Galeri Tamu
           </span>
-          <a
-            href={window.location.origin}
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--primary)',
-              textDecoration: 'none',
-              fontWeight: 600
-            }}
-          >
-            ← Workstation
-          </a>
         </div>
         <GuestGalleryView />
       </div>

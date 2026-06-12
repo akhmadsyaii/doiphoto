@@ -294,13 +294,13 @@ export const RetouchProfilesView: React.FC = () => {
 
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px', flex: 1, minHeight: 0 }}>
+    <div className="retouch-layout">
       
       {/* Left Column: Draggable split slider */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
         
         {/* Header Bar */}
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="glass-panel retouch-header" style={{ padding: '20px' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Layers size={20} className="text-gradient" /> Kustomisasi Preset AI
@@ -324,9 +324,7 @@ export const RetouchProfilesView: React.FC = () => {
         </div>
 
         {/* Live Slider Canvas – fixed 16:9 */}
-        <div
-          style={{ position: 'relative', width: '100%', aspectRatio: '16/9', maxHeight: '50vh', background: '#0a0a0c', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
-        >
+        <div className="slider-wrap" style={{ background: '#0a0a0c', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
           {/* Draggable comparison area */}
           <div
             ref={containerRef}
@@ -474,7 +472,7 @@ export const RetouchProfilesView: React.FC = () => {
       )}
 
       {/* Right Column: AI preset list, watermarks, face beautification controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '300px', flexShrink: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 100px)', paddingRight: '4px' }}>
+      <div className="retouch-sidebar">
         
         {/* Preset profile list */}
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

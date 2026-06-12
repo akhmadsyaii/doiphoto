@@ -996,3 +996,81 @@ h1, h2, h3, h4 {
   min-width: 0;
   min-height: 0;
 }
+
+/* Retouch layout: 2-col desktop, stack mobile */
+.retouch-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+@media (max-width: 768px) {
+  .retouch-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Guest gallery responsive container */
+.guest-gallery-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .guest-gallery-wrap {
+    padding: 12px;
+    gap: 16px;
+  }
+}
+
+/* Retouch right panel responsive */
+.retouch-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 100px);
+  padding-right: 4px;
+}
+@media (max-width: 768px) {
+  .retouch-sidebar {
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+/* Slider container responsive aspect */
+.slider-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  max-height: 50vh;
+}
+@media (max-width: 768px) {
+  .slider-wrap {
+    max-height: 30vh;
+  }
+}
+
+/* Mobile retouch header: wrap on small */
+.retouch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .retouch-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -163,15 +163,7 @@ export const GuestGalleryView: React.FC = () => {
   };
 
   return (
-    <div style={{ 
-      maxWidth: '1200px', 
-      margin: '0 auto', 
-      padding: '20px', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '24px',
-      width: '100%'
-    }}>
+    <div className="guest-gallery-wrap">
       
       {/* Styles for biometric scan laser */}
       <style>{`
