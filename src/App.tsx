@@ -6,6 +6,7 @@ import { RetouchProfilesView } from './components/RetouchProfilesView';
 import { GuestGalleryView } from './components/GuestGalleryView';
 import { LoginView } from './components/LoginView';
 import { AlbumSelectionView } from './components/AlbumSelectionView';
+import { Menu } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const { activeTab, setEventName, isLoggedIn, activeAlbumId, selectAlbum } = useCloud();
@@ -13,6 +14,7 @@ const AppContent: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') === 'gallery';
   });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Simple query-param routing to support guest view and admin view
   useEffect(() => {
@@ -33,12 +35,12 @@ const AppContent: React.FC = () => {
   // Render Guest view (always bypasses authentication)
   if (isGuestView) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100dvh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
         {/* Simple navigation to go back to admin panel (convenient for local debugging) */}
         <div style={{ 
           background: 'rgba(0, 0, 0, 0.3)', 
           borderBottom: '1px solid var(--border-color)', 
-          padding: '10px 20px', 
+          padding: '10px 16px', 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center' 
@@ -77,7 +79,33 @@ const AppContent: React.FC = () => {
   // Render Photographer admin workstation
   return (
     <div className="app-container">
-      <Sidebar />
+      {/* Mobile top bar */}
+      <div className="sidebar-mobile-toggle" style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: 'var(--bg-deep)',
+        borderBottom: '1px solid var(--border-color)',
+        padding: '10px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '4px' }}
+        >
+          <Menu size={24} />
+        </button>
+        <span style={{ fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: '1rem' }}>
+          do'i<span className="text-gradient">picture</span>
+        </span>
+      </div>
+
+      <Sidebar 
+        mobileOpen={mobileSidebarOpen} 
+        onMobileClose={() => setMobileSidebarOpen(false)} 
+      />
       <main className="main-content">
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'retouch' && <RetouchProfilesView />}

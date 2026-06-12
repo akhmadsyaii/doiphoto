@@ -1,8 +1,13 @@
 import React from 'react';
 import { useCloud } from '../context/CloudContext';
-import { Camera, Sliders, Image, Wifi, WifiOff, RefreshCw, LogOut, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Camera, Sliders, Image, Wifi, WifiOff, RefreshCw, LogOut, ArrowLeft, Sun, Moon, X } from 'lucide-react';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
   const { 
     activeTab, 
     setActiveTab, 
@@ -22,11 +27,11 @@ export const Sidebar: React.FC = () => {
     { id: 'gallery', label: 'Galeri Live Tamu', icon: Image },
   ] as const;
 
-  return (
-    <aside className="glass-panel" style={{ width: '280px', margin: '20px 0 20px 20px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', flexShrink: 0 }}>
+  const content = (
+    <>
       {/* Back to Albums Button */}
       <button
-        onClick={() => selectAlbum(null)}
+        onClick={() => { selectAlbum(null); onMobileClose?.(); }}
         className="btn btn-secondary"
         style={{
           justifyContent: 'flex-start',
@@ -84,6 +89,7 @@ export const Sidebar: React.FC = () => {
                 } else {
                   setActiveTab(item.id);
                 }
+                onMobileClose?.();
               }}
               className="btn"
               style={{
@@ -210,7 +216,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Logout Button */}
       <button
-        onClick={logout}
+        onClick={() => { logout(); onMobileClose?.(); }}
         className="btn btn-danger"
         style={{
           width: '100%',
@@ -226,6 +232,42 @@ export const Sidebar: React.FC = () => {
         <LogOut size={16} />
         <span>Keluar Workstation</span>
       </button>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="glass-panel sidebar-desktop" style={{ 
+        width: '280px', 
+        margin: '20px 0 20px 20px', 
+        padding: '24px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '24px', 
+        flexShrink: 0 
+      }}>
+        {content}
+      </aside>
+
+      {/* Mobile drawer overlay */}
+      <div 
+        className={`sidebar-overlay ${mobileOpen ? 'open' : ''}`}
+        onClick={onMobileClose}
+      />
+      
+      {/* Mobile drawer */}
+      <div className={`sidebar-drawer ${mobileOpen ? 'open' : ''}`}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onMobileClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+          >
+            <X size={24} />
+          </button>
+        </div>
+        {content}
+      </div>
+    </>
   );
 };

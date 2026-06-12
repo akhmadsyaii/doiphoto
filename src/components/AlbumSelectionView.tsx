@@ -79,8 +79,8 @@ export const AlbumSelectionView: React.FC = () => {
       }} />
 
       {/* Header Panel */}
-      <header className="glass-panel" style={{
-        padding: '16px 40px',
+      <header className="glass-panel album-header" style={{
+        padding: '12px 16px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',

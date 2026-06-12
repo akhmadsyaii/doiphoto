@@ -14,7 +14,6 @@ export const LoginView: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
-    // Short timeout to simulate authentication and provide a satisfying transition
     setTimeout(() => {
       const success = login(email, password);
       setIsLoading(false);
@@ -31,8 +30,8 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
+    <div className="login-container" style={{
+      minHeight: '100dvh',
       width: '100vw',
       background: 'var(--bg-deep)',
       display: 'flex',
@@ -68,7 +67,7 @@ export const LoginView: React.FC = () => {
 
       {/* Main Glass Box */}
       <div 
-        className="glass-panel" 
+        className="glass-panel login-panel"
         style={{
           width: '100%',
           maxWidth: '440px',
@@ -77,8 +76,7 @@ export const LoginView: React.FC = () => {
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '28px',
-          animation: 'upload-pulse 8s ease-in-out infinite'
+          gap: '28px'
         }}
       >
         {/* Logo and Brand */}

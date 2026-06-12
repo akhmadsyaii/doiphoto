@@ -103,6 +103,7 @@ body {
   background-color: var(--bg-deep);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth);
@@ -310,6 +311,7 @@ h1, h2, h3, h4 {
 .app-container {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg-deep);
 }
 
@@ -318,9 +320,11 @@ h1, h2, h3, h4 {
   padding: 30px;
   overflow-y: auto;
   max-height: 100vh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
 /* Masonry Gallery */
@@ -421,7 +425,7 @@ h1, h2, h3, h4 {
 
 .slider-image-after {
   z-index: 2;
-  overflow: hidden; /* Dynamic clip-path or width handles this */
+  overflow: hidden;
 }
 
 .slider-bar {
@@ -475,6 +479,7 @@ h1, h2, h3, h4 {
   display: inline-block;
   width: 44px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .switch input {
@@ -499,19 +504,151 @@ h1, h2, h3, h4 {
 .switch-slider:before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  bottom: 3px;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
   background-color: white;
   transition: .4s;
   border-radius: 50%;
 }
 
-input:checked + .switch-slider {
-  background-color: var(--primary);
+.switch input:checked + .switch-slider {
+  background: var(--primary-grad);
+  border-color: var(--primary);
 }
 
-input:checked + .switch-slider:before {
+.switch input:checked + .switch-slider:before {
   transform: translateX(20px);
+}
+
+/* ===== RESPONSIVE ADDITIONS ===== */
+
+/* Sidebar overwrite for mobile */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .main-content {
+    padding: 16px;
+    gap: 16px;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .sidebar-desktop {
+    display: none !important;
+  }
+  .sidebar-mobile-toggle {
+    display: flex !important;
+  }
+  /* Hide desktop-only desktop info on mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+}
+@media (min-width: 769px) {
+  .sidebar-mobile-toggle {
+    display: none !important;
+  }
+  .sidebar-mobile-drawer {
+    display: none !important;
+  }
+  .sidebar-desktop {
+    display: flex !important;
+  }
+}
+
+/* Mobile sidebar drawer overlay */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+.sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+.sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  z-index: 101;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-color);
+  padding: 20px 16px;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.3s var(--ease-smooth);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.sidebar-drawer.open {
+  transform: translateX(0);
+}
+
+/* Responsive dashboard grid */
+@media (max-width: 768px) {
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .dash-right-panel {
+    display: none !important;
+  }
+  .dash-right-panel.mobile-visible {
+    display: flex !important;
+  }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: 1fr 280px !important;
+  }
+}
+
+/* Photo grid responsive */
+@media (max-width: 480px) {
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* Event header responsive */
+@media (max-width: 768px) {
+  .event-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .event-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .glass-panel {
+    border-radius: 12px;
+  }
+}
+
+/* Login responsive */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 12px !important;
+  }
+  .login-panel {
+    padding: 24px 20px !important;
+  }
+}
+
+/* overflow fix for flex containers */
+.flex-shrink-min {
+  min-width: 0;
+  min-height: 0;
 }

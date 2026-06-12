@@ -16,7 +16,9 @@ import {
   FileCheck,
   UserCheck,
   Star,
-  FolderOpen
+  FolderOpen,
+  ChevronRight,
+  X
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {
@@ -49,6 +51,7 @@ export const DashboardView: React.FC = () => {
   const [eventInput, setEventInput] = useState<string>(eventName);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<'semua' | 'belum' | 'sedang' | 'selesai' | 'gagal'>('semua');
+  const [mobileRightOpen, setMobileRightOpen] = useState(false);
   
   // Sub-tabs on Dashboard
   const [dashTab, setDashTab] = useState<'feed' | 'reviewer' | 'team'>('feed');
@@ -77,13 +80,29 @@ export const DashboardView: React.FC = () => {
 
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '24px', flex: 1, minHeight: 0 }}>
+    <div className="dash-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '24px', flex: 1, minHeight: 0 }}>
       {/* Left Column: Photos Queue, Desk Tabs & Session info */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
         
+        {/* Mobile right panel toggle */}
+        <div className="sidebar-mobile-toggle" style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: '-16px'
+        }}>
+          <button
+            onClick={() => setMobileRightOpen(true)}
+            className="btn btn-secondary"
+            style={{ padding: '8px 12px', fontSize: '0.75rem', gap: '6px' }}
+          >
+            Kamera & Koneksi
+            <ChevronRight size={14} />
+          </button>
+        </div>
+
         {/* Event Banner */}
         <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div className="event-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
               {isEditingEvent ? (
                 <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '500px' }}>
@@ -116,10 +135,10 @@ export const DashboardView: React.FC = () => {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="event-actions" style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setIsShareOpen(true)} className="btn btn-primary">
                 <Share2 size={16} />
-                Bagikan Galeri
+                <span className="hide-mobile">Bagikan Galeri</span>
               </button>
               <button onClick={clearPhotos} className="btn btn-danger" title="Hapus Semua Foto">
                 <Trash2 size={16} />
@@ -128,7 +147,7 @@ export const DashboardView: React.FC = () => {
           </div>
 
           {/* Quick Metrics & Auto Retouch Settings */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+          <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
             
             {/* Auto Retouch Setting */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '16px', borderRight: '1px solid var(--border-color)' }}>
@@ -225,7 +244,7 @@ export const DashboardView: React.FC = () => {
                 value={gdriveLink}
                 onChange={(e) => setGDriveLink(e.target.value)}
                 className="glass-input"
-                placeholder="Tempel link folder bersama Google Drive (contoh: https://drive.google.com/drive/folders/...)"
+                placeholder="Tempel link folder bersama Google Drive"
                 style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
               />
               {gdriveLink && (
@@ -248,7 +267,7 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Dashboard Workstation Tab Navigators */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '1px' }}>
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '1px', overflowX: 'auto' }}>
           {([
             { id: 'feed', label: 'Antrean Foto', count: photos.length, icon: Activity, highlight: false },
             { id: 'reviewer', label: 'Kurasi Foto', count: pendingPhotos.length, icon: FileCheck, highlight: pendingPhotos.length > 0 },
@@ -273,11 +292,14 @@ export const DashboardView: React.FC = () => {
                   alignItems: 'center',
                   gap: '8px',
                   transition: 'all 0.2s',
-                  position: 'relative'
+                  position: 'relative',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
               >
                 <Icon size={14} style={{ color: tab.highlight && !isTabActive ? 'var(--accent-amber)' : 'currentColor' }} />
-                {tab.label}
+                <span className="hide-mobile">{tab.label}</span>
+                <span className="sidebar-mobile-toggle" style={{ fontSize: '0.85rem' }}>{tab.label}</span>
                 <span 
                   className={`badge ${tab.highlight ? 'badge-amber' : isTabActive ? 'badge-violet' : 'badge-cyan'}`} 
                   style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '10px' }}
@@ -305,7 +327,7 @@ export const DashboardView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status Filters Bar (do'ipicture Style) */}
+              {/* Status Filters Bar */}
               <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', overflowX: 'auto' }}>
                 {([
                   { id: 'semua', label: 'Semua', count: photos.length, highlight: '' },
@@ -332,7 +354,9 @@ export const DashboardView: React.FC = () => {
                         alignItems: 'center',
                         gap: '6px',
                         transition: 'all 0.2s',
-                        borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent'
+                        borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
                       }}
                     >
                       <span>{item.label}</span>
@@ -366,7 +390,6 @@ export const DashboardView: React.FC = () => {
                   border: '1px dashed var(--border-color)',
                   margin: '20px 0'
                 }}>
-                  {/* Confused emoji */}
                   <div style={{ fontSize: '4.5rem', marginBottom: '16px', animation: 'upload-pulse 2s ease-in-out infinite' }}>🤔</div>
                   
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
@@ -425,7 +448,7 @@ export const DashboardView: React.FC = () => {
                     }
                     
                     return (
-                      <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '16px', alignContent: 'start' }}>
+                      <div className="photo-grid" style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '16px', alignContent: 'start' }}>
                         {filtered.map((photo) => (
                           <div 
                             key={photo.id}
@@ -467,21 +490,21 @@ export const DashboardView: React.FC = () => {
                                   <span className="badge badge-amber" style={{ fontSize: '0.55rem' }}>Ditahan Kurasi</span>
                                 )}
                               </div>
- 
+
                               {/* Star overlay indicator */}
                               {photo.isStarred && (
                                 <div style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 5 }}>
                                   <span className="badge badge-amber" style={{ padding: '3px' }}><Star size={10} fill="currentColor" /></span>
                                 </div>
                               )}
- 
+
                               {/* Folder/Category overlay label */}
                               <div style={{ position: 'absolute', bottom: '6px', left: '6px', zIndex: 5 }}>
                                 <span className="badge badge-cyan" style={{ fontSize: '0.55rem', padding: '1px 4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                                   <FolderOpen size={8} /> {photo.category}
                                 </span>
                               </div>
- 
+
                               {/* Hover triggers */}
                               {photo.status === 'done' && (
                                 <div 
@@ -514,7 +537,7 @@ export const DashboardView: React.FC = () => {
                                 </div>
                               )}
                             </div>
- 
+
                             {/* Info bar */}
                             <div style={{ padding: '6px 10px', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)' }}>
                               <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -525,7 +548,7 @@ export const DashboardView: React.FC = () => {
                                 <span>{new Date(photo.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                               </div>
                             </div>
- 
+
                             <style>{`
                               .glass-card:hover .photo-overlay {
                                 opacity: 1 !important;
@@ -682,9 +705,9 @@ export const DashboardView: React.FC = () => {
 
               {/* Stream simulation controls */}
               <div style={{ background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.15)', padding: '16px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--secondary)' }}>Simulasikan Aliran Jepretan Tim</span>
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '200px' }}>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                     Membuat fotografer simulasi Aris dan Dina mengambil dan mengupload foto secara otomatis.
                   </p>
                 </div>
@@ -707,7 +730,18 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Right Column: Connection Dials */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '360px', flexShrink: 0 }}>
+      <div className={`dash-right-panel ${mobileRightOpen ? 'mobile-visible' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '360px', flexShrink: 0 }}>
+        {/* Mobile close button */}
+        <div className="sidebar-mobile-toggle" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => setMobileRightOpen(false)}
+            className="btn btn-secondary"
+            style={{ padding: '8px', fontSize: '0.75rem' }}
+          >
+            <X size={16} />
+            Tutup
+          </button>
+        </div>
         <CameraSimulator />
         <WebUSBConnector />
       </div>
@@ -742,32 +776,33 @@ export const DashboardView: React.FC = () => {
               />
             </div>
 
-            <div className="glass-panel" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h4 style={{ fontSize: '1rem' }}>{viewingPhoto.name}</h4>
-                  {viewingPhoto.isStarred && <span className="badge badge-amber" style={{ padding: '2px 6px', fontSize: '0.6rem' }}>Dikunci Bintang</span>}
-                  <span className="badge badge-cyan" style={{ padding: '2px 6px', fontSize: '0.6rem' }}>{viewingPhoto.category}</span>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '10px', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  <span>Shutter: #{viewingPhoto.shutterCount}</span>
-                  <span>Preset: <strong style={{ color: 'var(--primary)' }} className="text-gradient">{viewingPhoto.preset === 'wedding' ? 'Pernikahan' : viewingPhoto.preset === 'sports' ? 'Olahraga' : viewingPhoto.preset === 'cinematic' ? 'Sinematik' : viewingPhoto.preset === 'monochrome' ? 'Monokrom' : viewingPhoto.preset === 'custom' ? 'Custom' : viewingPhoto.preset === 'manual' ? 'Manual' : viewingPhoto.preset === 'none' ? 'Tanpa Preset' : viewingPhoto.preset}</strong></span>
-                  {viewingPhoto.metadata?.cameraBrand && (
-                    <span>Kamera: {viewingPhoto.metadata.cameraBrand} {viewingPhoto.metadata.cameraModel}</span>
-                  )}
-                </div>
-                {viewingPhoto.metadata && (
-                  <div style={{ display: 'flex', gap: '8px', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'monospace' }}>
-                    <span>Aperture: {viewingPhoto.metadata.aperture}</span>
-                    <span>Shutter: {viewingPhoto.metadata.shutterSpeed}</span>
-                    <span>ISO: {viewingPhoto.metadata.iso}</span>
-                    <span>Lensa: {viewingPhoto.metadata.focalLength}</span>
+            <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <h4 style={{ fontSize: '1rem' }}>{viewingPhoto.name}</h4>
+                    {viewingPhoto.isStarred && <span className="badge badge-amber" style={{ padding: '2px 6px', fontSize: '0.6rem' }}>Dikunci Bintang</span>}
+                    <span className="badge badge-cyan" style={{ padding: '2px 6px', fontSize: '0.6rem' }}>{viewingPhoto.category}</span>
                   </div>
-                )}
+                  
+                  <div style={{ display: 'flex', gap: '10px', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <span>Shutter: #{viewingPhoto.shutterCount}</span>
+                    <span>Preset: <strong style={{ color: 'var(--primary)' }} className="text-gradient">{viewingPhoto.preset === 'wedding' ? 'Pernikahan' : viewingPhoto.preset === 'sports' ? 'Olahraga' : viewingPhoto.preset === 'cinematic' ? 'Sinematik' : viewingPhoto.preset === 'monochrome' ? 'Monokrom' : viewingPhoto.preset === 'custom' ? 'Custom' : viewingPhoto.preset === 'manual' ? 'Manual' : viewingPhoto.preset === 'none' ? 'Tanpa Preset' : viewingPhoto.preset}</strong></span>
+                    {viewingPhoto.metadata?.cameraBrand && (
+                      <span>Kamera: {viewingPhoto.metadata.cameraBrand} {viewingPhoto.metadata.cameraModel}</span>
+                    )}
+                  </div>
+                </div>
               </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
+              {viewingPhoto.metadata && (
+                <div style={{ display: 'flex', gap: '8px', fontSize: '0.7rem', color: 'var(--text-muted)', flexWrap: 'wrap', fontFamily: 'monospace' }}>
+                  <span>Aperture: {viewingPhoto.metadata.aperture}</span>
+                  <span>Shutter: {viewingPhoto.metadata.shutterSpeed}</span>
+                  <span>ISO: {viewingPhoto.metadata.iso}</span>
+                  <span>Lensa: {viewingPhoto.metadata.focalLength}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button onClick={() => toggleStarPhoto(viewingPhoto.id)} className="btn btn-secondary" style={{ color: viewingPhoto.isStarred ? 'var(--accent-amber)' : 'inherit' }}>
                   <Star size={14} fill={viewingPhoto.isStarred ? 'currentColor' : 'none'} />
                 </button>
