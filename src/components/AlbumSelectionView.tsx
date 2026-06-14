@@ -35,7 +35,8 @@ export const AlbumSelectionView: React.FC = () => {
   };
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
+    const ms = timestamp < 99999999999 ? timestamp * 1000 : timestamp;
+    return new Date(ms).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
