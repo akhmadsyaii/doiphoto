@@ -33,6 +33,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ASGI middleware to handle Traefik /api strip-prefix routing compatibility
+class ApiPrefixMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if not path.startswith("/api") and not path.startswith("/static"):
+                scope["path"] = "/api" + path
+        await self.app(scope, receive, send)
+
+app.add_middleware(ApiPrefixMiddleware)
+
 # Temp upload directory
 TEMP_UPLOAD_DIR = "/tmp/doipicture"
 os.makedirs(TEMP_UPLOAD_DIR, exist_ok=True)
