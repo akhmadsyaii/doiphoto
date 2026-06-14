@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: doipicture-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./static:/app/static
+      # Try to mount from default host path if it exists, fallback to empty volume otherwise
+      - /etc/doipicture/credentials.json:/app/credentials.json:ro
+    environment:
+      - ADMIN_TOKEN=doipicture_admin_secret
+      - GDRIVE_ROOT_FOLDER_ID=1_root_gdrive_folder_id_here

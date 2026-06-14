@@ -36,3 +36,12 @@ pnpm-debug.log*
 
 # Cache
 .cache/
+
+# Local databases and assets
+data/
+static/
+.vite/
+
+# Python caches
+backend/__pycache__/
+backend/.pytest_cache/

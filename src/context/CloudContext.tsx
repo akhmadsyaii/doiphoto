@@ -187,6 +187,12 @@ interface CloudContextType {
   allPhotos: Photo[];
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  serverUrl: string;
+  setServerUrl: (url: string) => void;
+  adminToken: string;
+  setAdminToken: (token: string) => void;
+  isServerConnected: boolean;
+  setIsServerConnected: (connected: boolean) => void;
 }
 
 const CloudContext = createContext<CloudContextType | undefined>(undefined);
@@ -381,6 +387,47 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [gdriveLink, setGDriveLinkState] = useState<string>('');
   const [qrTargetMode, setQrTargetMode] = useState<'gallery' | 'gdrive'>('gallery');
 
+  const [serverUrl, setServerUrlState] = useState<string>(() => {
+    return localStorage.getItem('doipicture_server_url') || 'http://localhost:8000';
+  });
+  const [adminToken, setAdminTokenState] = useState<string>(() => {
+    return localStorage.getItem('doipicture_admin_token') || 'doipicture_admin_secret';
+  });
+  const [isServerConnected, setIsServerConnected] = useState<boolean>(false);
+
+  const setServerUrl = (url: string) => {
+    setServerUrlState(url);
+    localStorage.setItem('doipicture_server_url', url);
+  };
+
+  const setAdminToken = (token: string) => {
+    setAdminTokenState(token);
+    localStorage.setItem('doipicture_admin_token', token);
+  };
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (!serverUrl) {
+        setIsServerConnected(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${serverUrl}/api/health`);
+        const data = await res.json();
+        if (data && data.status === 'healthy') {
+          setIsServerConnected(true);
+        } else {
+          setIsServerConnected(false);
+        }
+      } catch (err) {
+        setIsServerConnected(false);
+      }
+    };
+    checkConnection();
+    const interval = setInterval(checkConnection, 10000);
+    return () => clearInterval(interval);
+  }, [serverUrl]);
+
   const setWatermarkText = (text: string) => {
     setWatermarkTextState(text);
     updateActiveAlbumProperty('watermarkText', text);
@@ -422,8 +469,8 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateActiveAlbumProperty = <K extends keyof Album>(key: K, value: Album[K]) => {
+    const activeId = localStorage.getItem('doiphoto_active_album_id');
     setAlbums(prev => {
-      const activeId = localStorage.getItem('doiphoto_active_album_id');
       if (!activeId) return prev;
       const updated = prev.map(a => a.id === activeId ? { ...a, [key]: value } : a);
       try {
@@ -433,6 +480,17 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return updated;
     });
+
+    if (isServerConnected && activeId) {
+      fetch(`${serverUrl}/api/v1/albums/${activeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ [key]: value })
+      }).catch(err => console.error('Failed to sync album update to server:', err));
+    }
   };
 
   const setManualBrightness = (val: number) => {
@@ -700,7 +758,80 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [activeAlbumId, albums]);
 
+  // Sync albums from server
+  useEffect(() => {
+    if (!isServerConnected) return;
+    const fetchAlbums = async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/v1/albums`, {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+        if (res.ok) {
+          const serverAlbums = await res.json();
+          if (serverAlbums) {
+            setAlbums(serverAlbums);
+            localStorage.setItem('doiphoto_albums', JSON.stringify(serverAlbums));
+            if (!activeAlbumId && serverAlbums.length > 0) {
+              const lastId = localStorage.getItem('doiphoto_active_album_id');
+              if (lastId && serverAlbums.some((a: any) => a.id === lastId)) {
+                setActiveAlbumId(lastId);
+              } else {
+                setActiveAlbumId(serverAlbums[0].id);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync albums from server:', err);
+      }
+    };
+    fetchAlbums();
+  }, [isServerConnected, serverUrl, adminToken]);
 
+  // Fetch and poll photos for the active album from the server
+  useEffect(() => {
+    if (!isServerConnected || !activeAlbumId) return;
+
+    const fetchPhotos = async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/v1/photos?album_id=${activeAlbumId}`, {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+        if (res.ok) {
+          const serverPhotos = await res.json();
+          setPhotos(prev => {
+            const localUploadingProcessing = prev.filter(p => p.albumId === activeAlbumId && (p.status === 'uploading' || p.status === 'processing'));
+            const finishedPhotoIds = new Set(localUploadingProcessing.map(p => p.id));
+            const filteredServerPhotos = serverPhotos.filter((p: Photo) => !finishedPhotoIds.has(p.id));
+            const combined = [...localUploadingProcessing, ...filteredServerPhotos];
+            return combined.sort((a, b) => b.timestamp - a.timestamp);
+          });
+        }
+      } catch (err) {
+        console.error('Failed to poll photos from server:', err);
+      }
+    };
+
+    fetchPhotos();
+    const interval = setInterval(fetchPhotos, 5000);
+    return () => clearInterval(interval);
+  }, [isServerConnected, serverUrl, adminToken, activeAlbumId]);
+
+  const base64ToBlob = (base64: string): Blob => {
+    const parts = base64.split(';base64,');
+    const contentType = parts[0].split(':')[1] || 'image/jpeg';
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: contentType });
+  };
 
   const addPhoto = async (
     base64OrUrl: string, 
@@ -789,9 +920,59 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         mSettings
       );
       
+      let finalPhotoUrl = retouchedUrl;
+      let finalOriginalUrl = base64OrUrl;
+      let serverPhotoId = newId;
+
+      if (isServerConnected) {
+        try {
+          const blob = base64ToBlob(retouchedUrl);
+          const formData = new FormData();
+          formData.append('image', blob, fileName);
+          formData.append('album_id', activeAlbumId || '');
+          formData.append('camera_brand', newPhoto.metadata?.cameraBrand || '');
+          formData.append('camera_model', newPhoto.metadata?.cameraModel || '');
+          formData.append('category', photoCategory);
+          formData.append('is_starred', isPhotoStarred.toString());
+          formData.append('is_approved', (!reviewerMode).toString());
+          formData.append(
+            'metadata',
+            JSON.stringify({
+              aperture: newPhoto.metadata?.aperture,
+              shutterSpeed: newPhoto.metadata?.shutterSpeed,
+              iso: newPhoto.metadata?.iso,
+              focalLength: newPhoto.metadata?.focalLength,
+              cameraBrand: newPhoto.metadata?.cameraBrand,
+              cameraModel: newPhoto.metadata?.cameraModel
+            })
+          );
+          
+          const uploadRes = await fetch(`${serverUrl}/api/v1/photos/upload`, {
+            method: 'POST',
+            headers: {
+              'X-API-Key': adminToken
+            },
+            body: formData
+          });
+          
+          if (uploadRes.ok) {
+            const uploadedPhotoData = await uploadRes.json();
+            finalPhotoUrl = uploadedPhotoData.url;
+            finalOriginalUrl = uploadedPhotoData.originalUrl;
+            serverPhotoId = uploadedPhotoData.id;
+          } else {
+            console.error('Server upload failed, falling back to local URL');
+          }
+        } catch (uploadErr) {
+          console.error('Error uploading to server:', uploadErr);
+        }
+      }
+
       const finishedPhoto: Photo = {
         ...newPhoto,
-        url: retouchedUrl,
+        id: serverPhotoId,
+        url: finalPhotoUrl,
+        originalUrl: finalOriginalUrl,
         preset: targetPreset,
         status: 'done'
       };
@@ -800,7 +981,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         prev.map(p => (p.id === newId ? finishedPhoto : p))
       );
 
-      setViewingPhoto(v => (v && v.id === newId ? finishedPhoto : v));
+      setViewingPhoto(v => (v && (v.id === newId || v.id === serverPhotoId) ? finishedPhoto : v));
 
       return finishedPhoto;
     } catch (error) {
@@ -913,6 +1094,24 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ? { ...v, url: retouchedUrl, preset: presetName, status: 'done' }
           : v
       );
+
+      if (isServerConnected) {
+        try {
+          await fetch(`${serverUrl}/api/v1/photos/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({
+              url: retouchedUrl,
+              preset: presetName
+            })
+          });
+        } catch (err) {
+          console.error('Failed to sync photo preset update to server:', err);
+        }
+      }
     } catch (error) {
       console.error('Failed to update photo preset:', error);
       setPhotos(prev =>
@@ -922,21 +1121,56 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleStarPhoto = (id: string) => {
+    let targetStarred = false;
     setPhotos(prev =>
-      prev.map(p => (p.id === id ? { ...p, isStarred: !p.isStarred } : p))
+      prev.map(p => {
+        if (p.id === id) {
+          targetStarred = !p.isStarred;
+          return { ...p, isStarred: targetStarred };
+        }
+        return p;
+      })
     );
+    if (isServerConnected) {
+      fetch(`${serverUrl}/api/v1/photos/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ isStarred: targetStarred })
+      }).catch(err => console.error('Failed to sync star status to server:', err));
+    }
   };
 
   const toggleReviewStatus = (id: string, approved: boolean) => {
     setPhotos(prev =>
       prev.map(p => (p.id === id ? { ...p, isApproved: approved } : p))
     );
+    if (isServerConnected) {
+      fetch(`${serverUrl}/api/v1/photos/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ isApproved: approved })
+      }).catch(err => console.error('Failed to sync review status to server:', err));
+    }
   };
 
   const deletePhoto = (id: string) => {
     setPhotos(prev => prev.filter(p => p.id !== id));
     if (viewingPhoto?.id === id) {
       setViewingPhoto(null);
+    }
+    if (isServerConnected) {
+      fetch(`${serverUrl}/api/v1/photos/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        }
+      }).catch(err => console.error('Failed to delete photo from server:', err));
     }
   };
 
@@ -963,6 +1197,18 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updated = [...albums, newAlbum];
     setAlbums(updated);
     localStorage.setItem('doiphoto_albums', JSON.stringify(updated));
+
+    if (isServerConnected) {
+      fetch(`${serverUrl}/api/v1/albums`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify(newAlbum)
+      }).catch(err => console.error('Failed to sync new album to server:', err));
+    }
+
     return newId;
   };
 
@@ -982,6 +1228,15 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPhotos(prev => prev.filter(p => p.albumId !== id));
     if (activeAlbumId === id) {
       selectAlbum(null);
+    }
+
+    if (isServerConnected) {
+      fetch(`${serverUrl}/api/v1/albums/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        }
+      }).catch(err => console.error('Failed to sync delete album to server:', err));
     }
   };
 
@@ -1106,7 +1361,13 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         photos: photos.filter(p => p.albumId === activeAlbumId),
         allPhotos: photos,
         theme,
-        toggleTheme
+        toggleTheme,
+        serverUrl,
+        setServerUrl,
+        adminToken,
+        setAdminToken,
+        isServerConnected,
+        setIsServerConnected
       }}
     >
       {children}

@@ -20,6 +20,7 @@ import {
   ChevronRight,
   X
 } from 'lucide-react';
+import { ServerSetupModal } from './ServerSetupModal';
 
 export const DashboardView: React.FC = () => {
   const { 
@@ -44,12 +45,15 @@ export const DashboardView: React.FC = () => {
     setIsTeamStreamActive,
     gdriveLink,
     setGDriveLink,
-    cameraInfo
+    cameraInfo,
+    serverUrl,
+    isServerConnected
   } = useCloud();
 
   const [isEditingEvent, setIsEditingEvent] = useState<boolean>(false);
   const [eventInput, setEventInput] = useState<string>(eventName);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
+  const [isServerModalOpen, setIsServerModalOpen] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<'semua' | 'belum' | 'sedang' | 'selesai' | 'gagal'>('semua');
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   
@@ -742,6 +746,40 @@ export const DashboardView: React.FC = () => {
             Tutup
           </button>
         </div>
+
+        {/* API Server Status Panel */}
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+              📡 Server API & Google Drive
+            </span>
+            {isServerConnected ? (
+              <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                Connected
+              </span>
+            ) : (
+              <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
+                Disconnected
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+            {isServerConnected ? (
+              <>
+                Koneksi aktif ke: <span style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>{serverUrl}</span>
+              </>
+            ) : (
+              'Belum terhubung ke server backend VPS. Klik tombol di bawah untuk menyinkronkan data secara realtime.'
+            )}
+          </div>
+          <button 
+            onClick={() => setIsServerModalOpen(true)} 
+            className="btn btn-secondary" 
+            style={{ width: '100%', padding: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            Atur Koneksi Server
+          </button>
+        </div>
         <CameraSimulator />
         <WebUSBConnector />
       </div>
@@ -823,6 +861,9 @@ export const DashboardView: React.FC = () => {
 
       {/* Share Album Modal */}
       <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
+      
+      {/* Server Setup Modal */}
+      <ServerSetupModal isOpen={isServerModalOpen} onClose={() => setIsServerModalOpen(false)} />
     </div>
   );
 };
