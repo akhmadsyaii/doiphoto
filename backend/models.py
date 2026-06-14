@@ -8,7 +8,7 @@ class Album(Base):
 
     id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
-    createdAt = Column(Float, default=datetime.utcnow().timestamp)
+    createdAt = Column(Float, default=lambda: datetime.utcnow().timestamp())
     gdriveLink = Column(String, default="")
     
     # Watermark settings
@@ -56,7 +56,7 @@ class Photo(Base):
     name = Column(String, index=True)
     originalUrl = Column(String)  # GD original photo URL
     url = Column(String)           # GD processed/active photo URL
-    timestamp = Column(Float, default=datetime.utcnow().timestamp)
+    timestamp = Column(Float, default=lambda: datetime.utcnow().timestamp())
     preset = Column(String, default="none")
     status = Column(String, default="done")  # uploading, processing, done, failed
     shutterCount = Column(Integer, default=0)

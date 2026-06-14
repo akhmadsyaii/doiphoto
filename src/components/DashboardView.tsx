@@ -549,7 +549,7 @@ export const DashboardView: React.FC = () => {
                               </span>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: 'var(--text-muted)' }}>
                                 <span>#{photo.shutterCount}</span>
-                                <span>{new Date(photo.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                <span>{new Date(photo.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                               </div>
                             </div>
 

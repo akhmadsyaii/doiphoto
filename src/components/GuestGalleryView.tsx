@@ -655,7 +655,7 @@ export const GuestGalleryView: React.FC = () => {
                 
                 <div style={{ display: 'flex', gap: '8px', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   <span>Jepretan: #{viewingPhoto.shutterCount}</span>
-                  <span>Waktu: {new Date(viewingPhoto.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>Waktu: {new Date(viewingPhoto.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
 
