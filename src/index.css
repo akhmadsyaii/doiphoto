@@ -599,10 +599,11 @@ h1, h2, h3, h4 {
     grid-template-columns: 1fr !important;
   }
   .dash-right-panel {
-    display: none !important;
-  }
-  .dash-right-panel.mobile-visible {
     display: flex !important;
+    width: 100% !important;
+  }
+  .sidebar-mobile-toggle {
+    display: none !important;
   }
 }
 @media (min-width: 769px) and (max-width: 1024px) {
