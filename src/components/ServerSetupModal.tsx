@@ -31,7 +31,9 @@ export const ServerSetupModal: React.FC<ServerSetupModalProps> = ({ isOpen, onCl
     // Clean up input URL
     let formattedUrl = inputUrl.trim();
     if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
-      formattedUrl = 'http://' + formattedUrl;
+      // Prepend current location protocol (https: or http:) to prevent mixed content issues
+      const protocol = window.location.protocol || 'http:';
+      formattedUrl = `${protocol}//${formattedUrl}`;
     }
     formattedUrl = formattedUrl.replace(/\/+$/, ''); // Strip trailing slash
 
