@@ -2,18 +2,230 @@ import os
 import json
 import uuid
 import shutil
+import urllib.request
+import urllib.parse
+import io
 from typing import List, Optional
 from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, Security, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from PIL import Image, ImageDraw, ImageFont
+from PIL.ExifTags import TAGS
+from fractions import Fraction
 
 import models
 import schemas
 import auth
 import drive
 from database import engine, get_db
+
+# ==========================================
+# HELPERS (EXIF PARSER & QR STANDEE SHEET GENERATOR)
+# ==========================================
+
+def parse_exif_metadata(file_path: str) -> dict:
+    metadata = {
+        "cameraBrand": "",
+        "cameraModel": "",
+        "aperture": "",
+        "shutterSpeed": "",
+        "iso": "",
+        "focalLength": ""
+    }
+    try:
+        with Image.open(file_path) as img:
+            exif = img._getexif()
+            if exif:
+                exif_data = {}
+                for tag, value in exif.items():
+                    decoded = TAGS.get(tag, tag)
+                    exif_data[decoded] = value
+                
+                # Brand & Model
+                brand = exif_data.get("Make", "")
+                if brand:
+                    metadata["cameraBrand"] = str(brand).strip()
+                
+                model = exif_data.get("Model", "")
+                if model:
+                    metadata["cameraModel"] = str(model).strip()
+                
+                # ISO
+                iso = exif_data.get("ISOSpeedRatings", "")
+                if iso:
+                    if isinstance(iso, (list, tuple)):
+                        iso = iso[0]
+                    metadata["iso"] = str(iso)
+                
+                # Aperture (FNumber)
+                fnumber = exif_data.get("FNumber", "")
+                if fnumber:
+                    try:
+                        val = float(fnumber)
+                        metadata["aperture"] = f"f/{val:.1f}".replace(".0", "")
+                    except Exception:
+                        metadata["aperture"] = f"f/{fnumber}"
+                
+                # Shutter Speed (ExposureTime)
+                exposure = exif_data.get("ExposureTime", "")
+                if exposure:
+                    try:
+                        frac = Fraction(exposure).limit_denominator()
+                        if frac.numerator == 1:
+                            metadata["shutterSpeed"] = f"1/{frac.denominator}s"
+                        elif frac > 1:
+                            metadata["shutterSpeed"] = f"{float(frac):.1f}s".replace(".0", "")
+                        else:
+                            metadata["shutterSpeed"] = f"{frac}s"
+                    except Exception:
+                        metadata["shutterSpeed"] = f"{exposure}s"
+                
+                # Focal Length
+                focal = exif_data.get("FocalLength", "")
+                if focal:
+                    try:
+                        val = float(focal)
+                        metadata["focalLength"] = f"{int(val)}mm"
+                    except Exception:
+                        metadata["focalLength"] = f"{focal}mm"
+    except Exception as e:
+        print(f"Error parsing EXIF: {e}")
+    return metadata
+
+def draw_camera_icon(draw, x: int, y: int, size: int = 40, color: tuple = (22, 119, 255)):
+    body_w = size
+    body_h = int(size * 0.65)
+    body_x = x
+    body_y = y + int(size * 0.25)
+    
+    lens_r = int(body_h * 0.35)
+    lens_cx = body_x + int(body_w / 2)
+    lens_cy = body_y + int(body_h / 2)
+    
+    bump_w = int(size * 0.3)
+    bump_h = int(size * 0.15)
+    bump_x = body_x + int((body_w - bump_w) / 2)
+    bump_y = y + int(size * 0.1)
+    
+    draw.rectangle([bump_x, bump_y, bump_x + bump_w, bump_y + bump_h], fill=color)
+    draw.rounded_rectangle([body_x, body_y, body_x + body_w, body_y + body_h], radius=int(size*0.1), fill=color)
+    draw.ellipse([lens_cx - lens_r, lens_cy - lens_r, lens_cx + lens_r, lens_cy + lens_r], fill=(255, 255, 255))
+    inner_r = int(lens_r * 0.6)
+    draw.ellipse([lens_cx - inner_r, lens_cy - inner_r, lens_cx + inner_r, lens_cy + inner_r], fill=color)
+
+def draw_corner_branding(img, text: str = "do'ipicture"):
+    w, h = img.size
+    draw = ImageDraw.Draw(img)
+    
+    font_path = None
+    for p in [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+    ]:
+        if os.path.exists(p):
+            font_path = p
+            break
+            
+    if font_path:
+        font = ImageFont.truetype(font_path, 20)
+        font_title = ImageFont.truetype(font_path, 42)
+        font_link = ImageFont.truetype(font_path, 24)
+    else:
+        font = ImageFont.load_default()
+        font_title = ImageFont.load_default()
+        font_link = ImageFont.load_default()
+        
+    color = (22, 119, 255)
+    text_color = (38, 38, 38)
+    
+    pad_x = 60
+    pad_y = 60
+    
+    # Top Left
+    draw_camera_icon(draw, pad_x, pad_y, 30, color)
+    draw.text((pad_x + 40, pad_y + 2), text, fill=text_color, font=font)
+    
+    # Top Right
+    try:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = bbox[2] - bbox[0]
+    except Exception:
+        text_w = len(text) * 12
+    draw_camera_icon(draw, w - pad_x - text_w - 50, pad_y, 30, color)
+    draw.text((w - pad_x - text_w, pad_y + 2), text, fill=text_color, font=font)
+    
+    # Bottom Left
+    draw_camera_icon(draw, pad_x, h - pad_y - 35, 30, color)
+    draw.text((pad_x + 40, h - pad_y - 33), text, fill=text_color, font=font)
+    
+    # Bottom Right
+    draw_camera_icon(draw, w - pad_x - text_w - 50, h - pad_y - 35, 30, color)
+    draw.text((w - pad_x - text_w, h - pad_y - 33), text, fill=text_color, font=font)
+    
+    return font_title, font_link
+
+def generate_qr_sheet(album_name: str, guest_link: str) -> io.BytesIO:
+    w, h = 1000, 1400
+    img = Image.new("RGB", (w, h), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    
+    font_title, font_link = draw_corner_branding(img)
+    
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=500x500&data={urllib.parse.quote(guest_link)}"
+    try:
+        req = urllib.request.Request(qr_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            qr_data = response.read()
+            qr_img = Image.open(io.BytesIO(qr_data)).convert("RGB")
+    except Exception as e:
+        print(f"Failed to fetch QR image: {e}")
+        qr_img = Image.new("RGB", (500, 500), (240, 240, 240))
+        qr_draw = ImageDraw.Draw(qr_img)
+        qr_draw.text((150, 240), "QR Code Unavailable", fill=(0, 0, 0))
+        
+    qr_img = qr_img.resize((500, 500))
+    qr_x = int((w - 500) / 2)
+    qr_y = int((h - 500) / 2) + 50
+    img.paste(qr_img, (qr_x, qr_y))
+    
+    draw.rectangle([qr_x - 10, qr_y - 10, qr_x + 510, qr_y + 510], outline=(230, 230, 230), width=3)
+    
+    display_name = album_name
+    if len(display_name) > 30:
+        display_name = display_name[:28] + "..."
+        
+    try:
+        bbox = draw.textbbox((0, 0), display_name, font=font_title)
+        title_w = bbox[2] - bbox[0]
+    except Exception:
+        title_w = len(display_name) * 25
+        
+    title_x = int((w - title_w) / 2)
+    title_y = qr_y - 120
+    draw.text((title_x, title_y), display_name, fill=(22, 119, 255), font=font_title)
+    
+    display_link = guest_link.replace("https://", "").replace("http://", "")
+    try:
+        bbox = draw.textbbox((0, 0), display_link, font=font_link)
+        link_w = bbox[2] - bbox[0]
+    except Exception:
+        link_w = len(display_link) * 14
+        
+    link_x = int((w - link_w) / 2)
+    link_y = qr_y + 540
+    
+    draw.rounded_rectangle([link_x - 20, link_y - 10, link_x + link_w + 20, link_y + 35], radius=8, fill=(240, 245, 255))
+    draw.text((link_x, link_y - 2), display_link, fill=(89, 89, 89), font=font_link)
+    
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf
+
 
 # Initialize database tables
 models.Base.metadata.create_all(bind=engine)
@@ -267,6 +479,9 @@ async def upload_photo(
     with open(temp_file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
         
+    # Extract EXIF metadata from the file
+    exif_meta = parse_exif_metadata(temp_file_path)
+        
     # Load metadata parameters
     meta_dict = {}
     try:
@@ -296,7 +511,7 @@ async def upload_photo(
         
     if not view_url:
         raise HTTPException(status_code=500, detail="Failed to upload and store image")
-
+ 
     # Create database entry
     new_photo = models.Photo(
         id=photo_id,
@@ -313,12 +528,12 @@ async def upload_photo(
         editorStatus="Raw",
         faceIds="[]",
         albumId=album_id,
-        cameraBrand=camera_brand or meta_dict.get("cameraBrand", ""),
-        cameraModel=camera_model or meta_dict.get("cameraModel", ""),
-        aperture=meta_dict.get("aperture", ""),
-        shutterSpeed=meta_dict.get("shutterSpeed", ""),
-        iso=meta_dict.get("iso", ""),
-        focalLength=meta_dict.get("focalLength", "")
+        cameraBrand=exif_meta.get("cameraBrand") or camera_brand or meta_dict.get("cameraBrand", ""),
+        cameraModel=exif_meta.get("cameraModel") or camera_model or meta_dict.get("cameraModel", ""),
+        aperture=exif_meta.get("aperture") or meta_dict.get("aperture", ""),
+        shutterSpeed=exif_meta.get("shutterSpeed") or meta_dict.get("shutterSpeed", ""),
+        iso=exif_meta.get("iso") or meta_dict.get("iso", ""),
+        focalLength=exif_meta.get("focalLength") or meta_dict.get("focalLength", "")
     )
     
     db.add(new_photo)
@@ -496,3 +711,27 @@ def get_guest_gallery(album_id: str, db: Session = Depends(get_db)):
         "gdriveLink": album.gdriveLink,
         "photos": photo_list
     }
+
+@app.get("/api/v1/albums/{album_id}/qr-sheet")
+def get_album_qr_sheet(album_id: str, request: Request, db: Session = Depends(get_db)):
+    album = db.query(models.Album).filter(models.Album.id == album_id).first()
+    if not album:
+        raise HTTPException(status_code=404, detail="Album not found")
+    
+    base = str(request.base_url).rstrip('/')
+    base = base.replace("/api", "")
+    guest_link = f"{base}/?view=gallery&albumId={album_id}"
+    
+    try:
+        buf = generate_qr_sheet(album.name, guest_link)
+        return StreamingResponse(
+            buf,
+            media_type="image/png",
+            headers={
+                "Content-Disposition": f"attachment; filename=qr_sheet_{album_id}.png",
+                "Cache-Control": "no-cache"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate QR Standee Sheet: {str(e)}")
+
