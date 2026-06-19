@@ -12,9 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from PIL.ExifTags import TAGS
 from fractions import Fraction
+import base64
 
 import models
 import schemas
@@ -25,6 +26,262 @@ from database import engine, get_db
 # ==========================================
 # HELPERS (EXIF PARSER & QR STANDEE SHEET GENERATOR)
 # ==========================================
+
+def apply_backend_retouch(temp_file_path: str, album) -> str:
+    """
+    Applies filters (presets) and watermarks to the image at temp_file_path.
+    Saves the processed image to a new temp path and returns its path.
+    """
+    import base64
+    import io
+    import os
+    import urllib.request
+    from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+    import drive
+    
+    # 1. Open the original image
+    try:
+        img = Image.open(temp_file_path).convert("RGBA")
+    except Exception as e:
+        print(f"Error opening image for backend retouch: {e}")
+        return temp_file_path
+        
+    width, height = img.size
+    
+    # Constrain maximum size for speed (similar to client side maxDim = 1200)
+    max_dim = 1200
+    if width > max_dim or height > max_dim:
+        if width > height:
+            new_height = int((height * max_dim) / width)
+            new_width = max_dim
+        else:
+            new_width = int((width * max_dim) / height)
+            new_height = max_dim
+        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        width, height = img.size
+
+    # 2. Apply preset/retouch if auto retouch is enabled
+    preset_name = album.activePreset or "none"
+    is_auto = album.isAutoRetouchEnabled
+    
+    brightness = 1.0
+    contrast = 1.0
+    saturation = 1.0
+    exposure = 0.0
+    warmth = 0.0
+    
+    if is_auto:
+        if preset_name == "wedding":
+            brightness = 1.06
+            contrast = 0.94
+            saturation = 1.08
+            warmth = 0.2
+        elif preset_name == "sports":
+            brightness = 1.03
+            contrast = 1.22
+            saturation = 1.30
+        elif preset_name == "cinematic":
+            brightness = 0.98
+            contrast = 1.15
+            saturation = 0.92
+            warmth = 0.1
+        elif preset_name == "monochrome":
+            img = img.convert("L").convert("RGBA")
+            brightness = 0.96
+            contrast = 1.35
+            saturation = 0.0
+        elif preset_name in ["custom", "manual"]:
+            brightness = (album.manualBrightness or 100.0) / 100.0
+            contrast = (album.manualContrast or 100.0) / 100.0
+            saturation = (album.manualSaturation or 100.0) / 100.0
+            exposure = (album.manualExposure or 100.0) / 100.0 - 1.0
+            warmth = (album.manualWarmth or 100.0) / 100.0 - 1.0
+            
+    # Apply brightness/exposure
+    net_brightness = brightness * (1.0 + exposure * 0.2)
+    if net_brightness != 1.0:
+        img = ImageEnhance.Brightness(img).enhance(net_brightness)
+        
+    # Apply contrast
+    if contrast != 1.0:
+        img = ImageEnhance.Contrast(img).enhance(contrast)
+        
+    # Apply saturation
+    if saturation != 1.0:
+        img = ImageEnhance.Color(img).enhance(saturation)
+        
+    # Apply warmth tint
+    if warmth != 0.0:
+        tint_layer = Image.new("RGBA", img.size)
+        if warmth > 0:
+            tint_color = (253, 186, 116, int(warmth * 0.25 * 255))
+        else:
+            tint_color = (147, 197, 253, int(abs(warmth) * 0.25 * 255))
+        
+        draw_tint = ImageDraw.Draw(tint_layer)
+        draw_tint.rectangle([0, 0, width, height], fill=tint_color)
+        img = Image.alpha_composite(img, tint_layer)
+
+    # 3. Draw Watermark image overlay
+    watermark_type = album.watermarkType or "none"
+    watermark_img_uri = album.watermarkImage
+    frame_preset = album.watermarkFramePreset or "none"
+    
+    if watermark_type in ["image", "both"] or frame_preset == "custom":
+        if watermark_img_uri:
+            try:
+                watermark_img = None
+                if watermark_img_uri.startswith("data:image"):
+                    _, b64_data = watermark_img_uri.split(";base64,", 1)
+                    image_bytes = base64.b64decode(b64_data)
+                    watermark_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+                elif watermark_img_uri.startswith("http://") or watermark_img_uri.startswith("https://"):
+                    req = urllib.request.Request(watermark_img_uri, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        watermark_data = response.read()
+                    watermark_img = Image.open(io.BytesIO(watermark_data)).convert("RGBA")
+                else:
+                    local_path = watermark_img_uri
+                    if "static/" in local_path:
+                        local_path = local_path.split("static/")[-1]
+                        local_path = os.path.join(drive.LOCAL_STATIC_DIR, local_path)
+                    if os.path.exists(local_path):
+                        watermark_img = Image.open(local_path).convert("RGBA")
+                
+                if watermark_img:
+                    watermark_img = watermark_img.resize((width, height), Image.Resampling.LANCZOS)
+                    img = Image.alpha_composite(img, watermark_img)
+            except Exception as e:
+                print(f"Error applying custom watermark image: {e}")
+
+    # Draw built-in frames if selected
+    if frame_preset != "none" and frame_preset != "custom":
+        def get_bottom_banner_height(preset: str, h: int) -> int:
+            preset_heights = {
+                'polaroid': 0.15,
+                'wedding_gold': 0.18,
+                'botanical': 0.18,
+                'minimal_black': 0.15,
+                'retro_film': 0.14,
+                'midnight_luxury': 0.20,
+                'neon_glow': 0.15,
+                'soft_vignette': 0.18,
+                'silver_sparkles': 0.16,
+                'rose_gold_floral': 0.35,
+                'vintage_paper': 0.18,
+                'cyberpunk_grid': 0.16,
+                'cherry_blossom': 0.18,
+                'luxury_marble': 0.18,
+                'christmas_holiday': 0.18
+            }
+            return int(h * preset_heights.get(preset, 0.0))
+            
+        banner_h = get_bottom_banner_height(frame_preset, height)
+        if banner_h > 0:
+            banner_top = height - banner_h
+            frame_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(frame_layer)
+            
+            # Simple color matching for frames
+            if frame_preset == 'polaroid':
+                banner_color = (255, 255, 255, 224)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+                draw.line([0, banner_top, width, banner_top], fill=(15, 23, 42, 20), width=1)
+            elif frame_preset == 'wedding_gold':
+                banner_color = (252, 244, 220, 230)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+                draw.line([0, banner_top, width, banner_top], fill=(194, 120, 3, 220), width=2)
+                draw.line([0, banner_top + 4, width, banner_top + 4], fill=(194, 120, 3, 220), width=1)
+            elif frame_preset == 'rose_gold_floral':
+                banner_color = (186, 45, 85, 230)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'minimal_black':
+                banner_color = (30, 41, 59, 220)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'retro_film':
+                banner_color = (15, 23, 42, 230)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'midnight_luxury':
+                banner_color = (15, 23, 42, 240)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'neon_glow':
+                banner_color = (6, 182, 212, 220)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'botanical':
+                banner_color = (240, 245, 240, 230)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'vintage_paper':
+                banner_color = (245, 235, 215, 230)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            elif frame_preset == 'cherry_blossom':
+                banner_color = (253, 244, 245, 230)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+            else:
+                banner_color = (255, 255, 255, 224)
+                draw.rectangle([0, banner_top, width, height], fill=banner_color)
+                
+            img = Image.alpha_composite(img, frame_layer)
+
+    # 4. Draw Text Watermark
+    if watermark_type in ["text", "both"]:
+        lines = []
+        if album.watermarkTextLine1 or album.watermarkTextLine2 or album.watermarkTextLine3:
+            lines = [
+                album.watermarkTextLine1 or "",
+                album.watermarkTextLine2 or "",
+                album.watermarkTextLine3 or ""
+            ]
+            lines = [l for l in lines if l.strip()]
+        else:
+            lines = (album.watermarkText or "").split('\n')
+            lines = [l for l in lines if l.strip()]
+            
+        if lines:
+            text_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(text_layer)
+            
+            text_color = (255, 255, 255, 230)
+            if frame_preset in ['polaroid', 'wedding_gold', 'botanical', 'vintage_paper', 'cherry_blossom']:
+                if frame_preset == 'polaroid':
+                    text_color = (30, 41, 59, 230)
+                elif frame_preset == 'wedding_gold':
+                    text_color = (120, 53, 15, 230)
+                else:
+                    text_color = (30, 41, 59, 230)
+            
+            font_size = 28
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+            except Exception:
+                font = ImageFont.load_default()
+                
+            banner_h = int(height * 0.15) if frame_preset != "none" else 0
+            if banner_h > 0:
+                center_y = height - banner_h // 2
+                draw_y = center_y - (len(lines) * font_size) // 2
+                for line in lines:
+                    try:
+                        w = draw.textlength(line, font=font)
+                    except AttributeError:
+                        w = len(line) * (font_size * 0.6)
+                    draw.text((width // 2 - w // 2, draw_y), line, fill=text_color, font=font)
+                    draw_y += font_size + 4
+            else:
+                draw_y = height - 24 - len(lines) * (font_size + 4)
+                for line in lines:
+                    try:
+                        w = draw.textlength(line, font=font)
+                    except AttributeError:
+                        w = len(line) * (font_size * 0.6)
+                    draw.text((width - 24 - w, draw_y), line, fill=text_color, font=font)
+                    draw_y += font_size + 4
+                    
+            img = Image.alpha_composite(img, text_layer)
+
+    root, ext = os.path.splitext(temp_file_path)
+    processed_file_path = f"{root}_processed{ext}"
+    img.convert("RGB").save(processed_file_path, "JPEG", quality=85)
+    return processed_file_path
 
 def parse_exif_metadata(file_path: str) -> dict:
     metadata = {
@@ -412,6 +669,7 @@ async def upload_photo(
     request: Request,
     image: UploadFile = File(...),
     album_id: str = Form(...),
+    processed: Optional[bool] = Form(False),
     camera_brand: Optional[str] = Form(""),
     camera_model: Optional[str] = Form(""),
     metadata: Optional[str] = Form("{}"),
@@ -491,32 +749,50 @@ async def upload_photo(
         pass
         
     # Setup album folder on Google Drive
-    # Use GDRIVE_ROOT_FOLDER_ID from environment
     root_folder_id = os.getenv("GDRIVE_ROOT_FOLDER_ID", "")
-    
-    # We resolve the album folder
     album_folder_id = drive.get_or_create_album_folder(album.name, root_folder_id)
-    
-    # Upload to Google Drive (or fallback to local folder)
-    # We need server url for local fallback URLs
-    # Use request.base_url dynamically so that local storage fallback URLs match current domain/IP
     server_url = str(request.base_url)
+
+    temp_processed_path = temp_file_path
+    
+    if not processed:
+        try:
+            temp_processed_path = apply_backend_retouch(temp_file_path, album)
+        except Exception as pe:
+            print(f"Error in backend retouching: {pe}")
+            temp_processed_path = temp_file_path
+
+    # If processed is False, upload the original raw file separately
+    if not processed:
+        orig_filename = f"raw_{final_name}"
+        orig_view_url, orig_download_url = drive.upload_to_drive(
+            temp_file_path, orig_filename, album_folder_id, server_url
+        )
+    else:
+        orig_view_url, orig_download_url = "", ""
+
+    # Upload the processed file
     view_url, download_url = drive.upload_to_drive(
-        temp_file_path, final_name, album_folder_id, server_url
+        temp_processed_path, final_name, album_folder_id, server_url
     )
     
-    # Clean up temp file
+    # Clean up temp files
     if os.path.exists(temp_file_path):
         os.remove(temp_file_path)
+    if temp_processed_path != temp_file_path and os.path.exists(temp_processed_path):
+        os.remove(temp_processed_path)
         
     if not view_url:
         raise HTTPException(status_code=500, detail="Failed to upload and store image")
- 
+
+    # Set final URLs
+    final_original_url = orig_download_url if (not processed and orig_download_url) else download_url
+
     # Create database entry
     new_photo = models.Photo(
         id=photo_id,
         name=os.path.splitext(final_name)[0],
-        originalUrl=download_url,
+        originalUrl=final_original_url,
         url=view_url,
         timestamp=timestamp,
         preset=album.activePreset or "none",

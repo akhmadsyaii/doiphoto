@@ -930,6 +930,7 @@ export const CloudProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const formData = new FormData();
           formData.append('image', blob, fileName);
           formData.append('album_id', activeAlbumId || '');
+          formData.append('processed', 'true');
           formData.append('camera_brand', newPhoto.metadata?.cameraBrand || '');
           formData.append('camera_model', newPhoto.metadata?.cameraModel || '');
           formData.append('category', photoCategory);
