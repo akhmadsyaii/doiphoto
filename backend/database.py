@@ -3,7 +3,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Database path (SQLite)
-DATABASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+if os.path.exists("/app"):
+    DATABASE_DIR = "/app/data"
+else:
+    DATABASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+
 os.makedirs(DATABASE_DIR, exist_ok=True)
 DATABASE_URL = f"sqlite:///{os.path.join(DATABASE_DIR, 'doipicture.db')}"
 

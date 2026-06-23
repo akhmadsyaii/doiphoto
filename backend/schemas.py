@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+import json
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 
 # Photo Metadata sub-schema
@@ -59,6 +60,16 @@ class PhotoResponse(BaseModel):
     faceIds: List[int]
     albumId: str
     metadata: PhotoMetadata
+
+    @field_validator('faceIds', mode='before')
+    @classmethod
+    def parse_face_ids(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
     class Config:
         from_attributes = True
