@@ -521,6 +521,7 @@ TEMP_UPLOAD_DIR = "/tmp/doipicture"
 os.makedirs(TEMP_UPLOAD_DIR, exist_ok=True)
 
 # Mount local static folder for Google Drive fallback mode
+app.mount("/api/static", StaticFiles(directory=drive.LOCAL_STATIC_DIR), name="static_api")
 app.mount("/static", StaticFiles(directory=drive.LOCAL_STATIC_DIR), name="static")
 
 @app.get("/api/health")

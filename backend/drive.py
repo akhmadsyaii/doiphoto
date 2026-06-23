@@ -33,7 +33,10 @@ else:
     is_fallback_mode = True
 
 # Create local storage folders for fallback mode
-LOCAL_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+if os.path.exists("/app"):
+    LOCAL_STATIC_DIR = "/app/static"
+else:
+    LOCAL_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 os.makedirs(LOCAL_STATIC_DIR, exist_ok=True)
 
 
@@ -105,9 +108,17 @@ def upload_to_drive(file_path: str, filename: str, folder_or_album_id: str, serv
         shutil.copy2(file_path, dest_path)
         
         # Build local URLs
-        # Example: http://localhost:8000/static/album_name/filename.jpg
-        base_url = server_url.rstrip('/') if server_url else "http://localhost:8000"
-        local_url = f"{base_url}/static/{folder_or_album_id}/{filename}"
+        # Example: https://doiphoto.likhita.my.id/api/static/album_name/filename.jpg
+        public_url = os.getenv("COOLIFY_URL") or os.getenv("PUBLIC_URL")
+        if public_url:
+            base_url = public_url.rstrip('/')
+            local_url = f"{base_url}/static/{folder_or_album_id}/{filename}"
+        else:
+            base_url = server_url.rstrip('/') if server_url else "http://localhost:8000"
+            if base_url.endswith("/api"):
+                local_url = f"{base_url}/static/{folder_or_album_id}/{filename}"
+            else:
+                local_url = f"{base_url}/api/static/{folder_or_album_id}/{filename}"
         logger.info(f"Local file saved: {dest_path} -> Available at {local_url}")
         return local_url, local_url
 
